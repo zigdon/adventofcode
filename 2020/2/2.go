@@ -50,6 +50,24 @@ func findInvalid(entries []Pw) []Pw {
 	return res
 }
 
+func findInvalid2(entries []Pw) []Pw {
+	var res []Pw
+	for _, ent := range entries {
+		f := 0
+		if rune(ent.Password[ent.Min-1]) == ent.Req {
+			f = f + 1
+		}
+		if rune(ent.Password[ent.Max-1]) == ent.Req {
+			f = f + 1
+		}
+		if f != 1 {
+			res = append(res, ent)
+		}
+	}
+
+	return res
+}
+
 func printEnt(e Pw) string {
 	return fmt.Sprintf("%d-%d %s %s", e.Min, e.Max, string(e.Req), e.Password)
 }
@@ -63,4 +81,6 @@ func main() {
 	all := parseData(string(data))
 	bad := findInvalid(all)
 	fmt.Println(len(all) - len(bad))
+	bad2 := findInvalid2(all)
+	fmt.Println(len(all) - len(bad2))
 }

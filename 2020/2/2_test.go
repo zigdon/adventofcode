@@ -53,3 +53,28 @@ func TestFindInvalid(t *testing.T) {
 		})
 	}
 }
+
+func TestFindInvalid2(t *testing.T) {
+	tests := []struct {
+		desc string
+		give []Pw
+		want []Pw
+	}{
+		{
+			"Sample data",
+			sampleData(),
+			[]Pw{{1, 3, 'b', "cdefg"},
+				{2, 9, 'c', "ccccccccc"},
+			},
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.desc, func(t *testing.T) {
+			got := findInvalid2(tc.give)
+			if diff := cmp.Diff(tc.want, got); diff != "" {
+				t.Errorf("Bad results: %s", diff)
+			}
+		})
+	}
+}
