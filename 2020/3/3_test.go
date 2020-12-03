@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"testing"
 )
 
@@ -68,8 +69,23 @@ func TestCount(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	found := terrain.countTrees(3, 1)
-	if found != 7 {
-		t.Errorf("Ran into the wrong number of trees: expacted 7, found %d", found)
+
+	tests := []struct {
+		right, down, trees int
+	}{
+		{3, 1, 7},
+		{1, 1, 2},
+		{5, 1, 3},
+		{7, 1, 4},
+		{1, 2, 2},
+	}
+
+	for _, tc := range tests {
+		t.Run(fmt.Sprintf("%d,%d", tc.right, tc.down), func(t *testing.T) {
+			found := terrain.countTrees(tc.right, tc.down)
+			if found != tc.trees {
+				t.Errorf("Ran into the wrong number of trees: expacted %d, found %d", tc.trees, found)
+			}
+		})
 	}
 }

@@ -81,4 +81,10 @@ func main() {
 
 	count := terrain.countTrees(3, 1)
 	fmt.Println(count)
+
+	res := 1
+	for _, dir := range []struct{ right, down int }{{1, 1}, {3, 1}, {5, 1}, {7, 1}, {1, 2}} {
+		res = res * terrain.countTrees(dir.right, dir.down)
+	}
+	fmt.Println(res)
 }
