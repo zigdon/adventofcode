@@ -66,3 +66,31 @@ func TestReadPassports(t *testing.T) {
 		t.Errorf("Bad passports read: -want +got\n%s", diff)
 	}
 }
+
+func TestValidateField(t *testing.T) {
+	tests := []struct {
+		field string
+		val   string
+		want  bool
+	}{
+		{field: "byr", val: "2002", want: true},
+		{field: "byr", val: "2003", want: false},
+		{field: "hgt", val: "60in", want: true},
+		{field: "hgt", val: "190cm", want: true},
+		{field: "hgt", val: "190in", want: false},
+		{field: "hgt", val: "190", want: false},
+		{field: "hcl", val: "#123abc", want: true},
+		{field: "hcl", val: "#123abz", want: false},
+		{field: "hcl", val: "123abc", want: false},
+		{field: "ecl", val: "brn", want: true},
+		{field: "ecl", val: "wat", want: false},
+		{field: "pid", val: "000000001", want: true},
+		{field: "pid", val: "0123456789", want: false},
+	}
+
+	for i, tc := range tests {
+		if validateField(tc.field, tc.val) != tc.want {
+			t.Errorf("Bad field validation in %d", i)
+		}
+	}
+}
