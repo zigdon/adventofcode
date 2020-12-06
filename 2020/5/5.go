@@ -59,7 +59,21 @@ func newSeat(id string) *seat {
 	return res
 }
 
+func findOpenSeat(plane []bool) int {
+	for i, full := range plane {
+		if full || i == 0 {
+			continue
+		}
+		if plane[i-1] && plane[i+1] {
+			return i
+		}
+	}
+
+	return -1
+}
+
 func main() {
+	var plane [maxRows * maxCols]bool
 	input := os.Args[1]
 	data, err := ioutil.ReadFile(input)
 	if err != nil {
@@ -73,9 +87,11 @@ func main() {
 			continue
 		}
 		got := newSeat(bsp)
+		plane[got.Id] = true
 		if got.Id > best {
 			best = got.Id
 		}
 	}
 	fmt.Printf("Highest ID: %d", best)
+	fmt.Printf("My seat: %d", findOpenSeat(plane[:]))
 }

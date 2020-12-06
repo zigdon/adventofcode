@@ -35,6 +35,24 @@ var (
 	}
 )
 
+func TestFindOpenSeat(t *testing.T) {
+	tests := []struct {
+		in   []bool
+		want int
+	}{
+		{[]bool{false, false, false}, -1},
+		{[]bool{false, false, true, false, true}, 3},
+		{[]bool{true, false, true, false, true}, 1},
+	}
+
+	for i, tc := range tests {
+		got := findOpenSeat(tc.in)
+		if got != tc.want {
+			t.Errorf("Found wrong seat in #%d: want %d, got %d", i, tc.want, got)
+		}
+	}
+}
+
 func TestParseBSP(t *testing.T) {
 	for i, s := range sample {
 		testSeat := &seat{BSP: s.BSP}
