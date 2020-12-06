@@ -9,8 +9,9 @@ import (
 )
 
 type form struct {
-	Answers []string
-	Anyone  int
+	Answers  []string
+	Anyone   int
+	Everyone int
 }
 
 func parseInput(data string) []*form {
@@ -21,6 +22,12 @@ func parseInput(data string) []*form {
 	for _, line := range strings.Split(data, "\n") {
 		line = strings.TrimSpace(line)
 		if len(line) == 0 {
+			cur.Anyone = len(cnt)
+			for _, v := range cnt {
+				if v == len(cur.Answers) {
+					cur.Everyone = cur.Everyone + 1
+				}
+			}
 			res = append(res, cur)
 			cur = &form{}
 			cnt = make(map[rune]int)
@@ -30,7 +37,6 @@ func parseInput(data string) []*form {
 		for _, r := range line {
 			cnt[r] = cnt[r] + 1
 		}
-		cur.Anyone = len(cnt)
 	}
 
 	return res
@@ -43,9 +49,12 @@ func main() {
 		log.Fatalf("Error reading %q: %v", input, err)
 	}
 	groups := parseInput(string(data))
-	total := 0
+	totalAny := 0
+	totalEvery := 0
 	for _, g := range groups {
-		total = total + g.Anyone
+		totalAny = totalAny + g.Anyone
+		totalEvery = totalEvery + g.Everyone
 	}
-	fmt.Printf("Total uniq answers: %d", total)
+	fmt.Printf("Total anyone answered: %d", totalAny)
+	fmt.Printf("Total everyone answered: %d", totalEvery)
 }
