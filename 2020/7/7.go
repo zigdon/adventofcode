@@ -1,65 +1,111 @@
 package main
 
 import (
+	"fmt"
 	"io/ioutil"
 	"log"
 	"os"
-	"strconv"
-	"strings"
+
+	"github.com/alecthomas/participle"
 )
 
-type rule struct {
-	CanContain   map[string]int
-	CanBeFoundIn map[string]bool
+type Syntax struct {
+	Rules []*Rule `@@*`
 }
 
-func newRule() rule {
-	return rule{
-		CanContain:   make(map[string]int),
-		CanBeFoundIn: make(map[string]bool),
-	}
+type Color struct {
+	Color string `@Ident @Ident`
 }
 
-func parseRules(data string) map[string]rule {
-	res := make(map[string]rule)
+type Rule struct {
+	Container Color         `@@ "bags" "contain"`
+	Empty     *bool         `  ( @"no" "other" "bags" "."`
+	Bags      []*CountedBag `| @@ ("," @@ | ".")+ )`
+}
 
-	ts := strings.TrimSuffix
-	for _, line := range strings.Split(data, "\n") {
-		line = strings.TrimSpace(line)
-		if len(line) == 0 {
-			continue
-		}
-		if strings.Contains(line, "no other bags") {
-			bits := strings.Split(line, " bags ")
-			res[bits[0]] = newRule()
-			continue
-		}
-		bits := strings.Split(line, " contain ")
-		color := ts(ts(bits[0], "s"), " bag")
-		contents := strings.Split(bits[1], ", ")
-		cur := newRule()
+type CountedBag struct {
+	Count int   `@Int`
+	Color Color `@@ ("bag" | "bags")`
+}
 
-		for _, bag := range contents {
-			innerBits := strings.SplitN(bag, " ", 2)
-			count, err := strconv.Atoi(innerBits[0])
-			if err != nil {
-				log.Fatalf("Number expected in %q: %v", bag, err)
-			}
-			innerColor := ts(ts(ts(innerBits[1], "."), "s"), " bag")
-			if cur.CanContain == nil {
-				cur.CanContain = make(map[string]int)
-			}
-			cur.CanContain[innerColor] = count
-		}
+type Container struct {
+	CanContain map[string]bool
+	CanBeIn    map[string]bool
+}
 
-		res[color] = cur
+func getParser() *participle.Parser {
+	parser, err := participle.Build(&Syntax{})
+	if err != nil {
+		log.Fatalf("Error creating parser: %v", err)
 	}
 
-	for color, rule := range res {
-		if rule.CanContain != nil {
-			for innerColor := range rule.CanContain {
-				res[innerColor].CanBeFoundIn[color] = true
-			}
+	return parser
+}
+
+// Find all the colors that can be in a given bag (the supplied color), recursively
+func findContents(color string, rules map[string]*Rule, seen map[string]bool) []string {
+	if seen == nil {
+		seen = make(map[string]bool)
+	}
+
+	res := []string{}
+	seen[color] = true
+	for _, bag := range rules[color].Bags {
+		if seen[bag.Color.Color] {
+			continue
+		}
+		res = append(res, bag.Color.Color)
+		res = append(res, findContents(bag.Color.Color, rules, seen)...)
+	}
+
+	return res
+}
+
+func makeMap(syn *Syntax) map[string]*Rule {
+	res := make(map[string]*Rule)
+	for _, rule := range syn.Rules {
+		res[rule.Container.Color] = rule
+	}
+
+	return res
+}
+
+func parseRules(data string) map[string]*Container {
+	res := make(map[string]*Container)
+	parser := getParser()
+	syn := &Syntax{}
+	err := parser.ParseString("", data, syn)
+	if err != nil {
+		log.Fatalf("error parsing data: %v", err)
+	}
+
+	rules := makeMap(syn)
+
+	for color := range rules {
+		c := &Container{
+			CanContain: make(map[string]bool),
+			CanBeIn:    make(map[string]bool),
+		}
+		for _, bag := range findContents(color, rules, nil) {
+			c.CanContain[bag] = true
+		}
+		res[color] = c
+	}
+
+	for k, v := range res {
+		for color := range v.CanContain {
+			res[color].CanBeIn[k] = true
+		}
+	}
+
+	return res
+}
+
+func countContainers(color string, rules map[string]*Container) int {
+	res := 0
+	for _, cont := range rules {
+		if cont.CanContain[color] {
+			res++
 		}
 	}
 
@@ -68,9 +114,11 @@ func parseRules(data string) map[string]rule {
 
 func main() {
 	input := os.Args[1]
+	color := os.Args[2]
 	data, err := ioutil.ReadFile(input)
 	if err != nil {
 		log.Fatalf("can't read input: %v", err)
 	}
-	parseRules(string(data))
+	rules := parseRules(string(data))
+	fmt.Printf("# of bags that can contain %q: %d\n", color, countContainers(color, rules))
 }

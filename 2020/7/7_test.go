@@ -1,6 +1,8 @@
 package main
 
 import (
+	"fmt"
+	"sort"
 	"strings"
 	"testing"
 
@@ -21,92 +23,169 @@ func sample() string {
 	}, "\n")
 }
 
+func getSampleSyn() (*Syntax, error) {
+	parser := getParser()
+
+	syn := &Syntax{}
+	err := parser.ParseString("", sample(), syn)
+	if err != nil {
+		return nil, fmt.Errorf("parsing error: %v", err)
+	}
+
+	return syn, nil
+}
+
 func TestParseRules(t *testing.T) {
+	got := parseRules(sample())
 	tests := []struct {
-		text string
-		want map[string]rule
+		color string
+		cc    []string
+		cbi   []string
 	}{
 		{
-			text: strings.Join([]string{
-				"dotted black bags contain no other bags.",
-			}, "\n"),
-			want: map[string]rule{
-				"dotted black": {
-					CanContain:   map[string]int{},
-					CanBeFoundIn: map[string]bool{},
-				},
-			},
+			"brightwhite",
+			[]string{"darkolive", "dottedblack", "fadedblue", "shinygold", "vibrantplum"},
+			[]string{"darkorange", "lightred"},
 		},
 		{
-			text: strings.Join([]string{
-				"vibrant plum bags contain 5 faded blue bags, 6 dotted black bags.",
-				"faded blue bags contain no other bags.",
-				"dotted black bags contain no other bags.",
-			}, "\n"),
-			want: map[string]rule{
-				"vibrant plum": {
-					CanContain: map[string]int{
-						"faded blue":   5,
-						"dotted black": 6,
-					},
-					CanBeFoundIn: map[string]bool{},
-				},
-				"faded blue": {
-					CanContain:   map[string]int{},
-					CanBeFoundIn: map[string]bool{},
-				},
-				"dotted black": {
-					CanContain:   map[string]int{},
-					CanBeFoundIn: map[string]bool{},
-				},
-			},
+			"darkolive",
+			[]string{"dottedblack", "fadedblue"},
+			[]string{"brightwhite", "darkorange", "lightred", "shinygold", "mutedyellow"},
 		},
 		{
-			text: strings.Join([]string{
-				"shiny gold bags contain 1 dark olive bag, 2 vibrant plum bags.",
-				"dark olive bags contain 3 faded blue bags, 4 dotted black bags.",
-				"vibrant plum bags contain 5 faded blue bags, 6 dotted black bags.",
-				"faded blue bags contain no other bags.",
-				"dotted black bags contain no other bags.",
-			}, "\n"),
-			want: map[string]rule{
-				"shiny gold": {
-					CanContain: map[string]int{
-						"dark olive":   1,
-						"vibrant plum": 2,
-					},
-					CanBeFoundIn: map[string]bool{},
-				},
-				"dark olive": {
-					CanContain: map[string]int{
-						"faded blue":   3,
-						"dotted black": 4,
-					},
-					CanBeFoundIn: map[string]bool{},
-				},
-				"vibrant plum": {
-					CanContain: map[string]int{
-						"faded blue":   5,
-						"dotted black": 6,
-					},
-					CanBeFoundIn: map[string]bool{},
-				},
-				"faded blue": {
-					CanContain:   map[string]int{},
-					CanBeFoundIn: map[string]bool{},
-				},
-				"dotted black": {
-					CanContain:   map[string]int{},
-					CanBeFoundIn: map[string]bool{},
-				},
+			"darkorange",
+			[]string{"dottedblack", "fadedblue", "darkolive", "brightwhite", "shinygold", "vibrantplum", "mutedyellow"},
+			[]string{},
+		},
+	}
+
+	for _, tc := range tests {
+		want := &Container{
+			CanContain: make(map[string]bool),
+			CanBeIn:    make(map[string]bool),
+		}
+		for _, c := range tc.cc {
+			want.CanContain[c] = true
+		}
+		for _, c := range tc.cbi {
+			want.CanBeIn[c] = true
+		}
+		if diff := cmp.Diff(want, got[tc.color]); diff != "" {
+			t.Errorf("bad containers map for %q: %s", tc.color, diff)
+		}
+	}
+}
+
+func TestParser(t *testing.T) {
+	got, err := getSampleSyn()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	True := true
+	want := &Syntax{
+		Rules: []*Rule{
+			&Rule{
+				Container: Color{"lightred"},
+				Bags: []*CountedBag{
+					&CountedBag{Count: 1, Color: Color{"brightwhite"}},
+					&CountedBag{Count: 2, Color: Color{"mutedyellow"}},
+				}},
+			&Rule{
+				Container: Color{"darkorange"},
+				Bags: []*CountedBag{
+					&CountedBag{Count: 3, Color: Color{"brightwhite"}},
+					&CountedBag{Count: 4, Color: Color{"mutedyellow"}},
+				}},
+			&Rule{
+				Container: Color{"brightwhite"},
+				Bags: []*CountedBag{
+					&CountedBag{Count: 1, Color: Color{"shinygold"}},
+				}},
+			&Rule{
+				Container: Color{"mutedyellow"},
+				Bags: []*CountedBag{
+					&CountedBag{Count: 2, Color: Color{"shinygold"}},
+					&CountedBag{Count: 9, Color: Color{"fadedblue"}},
+				}},
+			&Rule{
+				Container: Color{"shinygold"},
+				Bags: []*CountedBag{
+					&CountedBag{Count: 1, Color: Color{"darkolive"}},
+					&CountedBag{Count: 2, Color: Color{"vibrantplum"}},
+				}},
+			&Rule{
+				Container: Color{"darkolive"},
+				Bags: []*CountedBag{
+					&CountedBag{Count: 3, Color: Color{"fadedblue"}},
+					&CountedBag{Count: 4, Color: Color{"dottedblack"}},
+				}},
+			&Rule{
+				Container: Color{"vibrantplum"},
+				Bags: []*CountedBag{
+					&CountedBag{Count: 5, Color: Color{"fadedblue"}},
+					&CountedBag{Count: 6, Color: Color{"dottedblack"}},
+				}},
+			&Rule{
+				Container: Color{"fadedblue"},
+				Empty:     &True,
+			},
+			&Rule{
+				Container: Color{"dottedblack"},
+				Empty:     &True,
 			},
 		},
 	}
 
-	for i, tc := range tests {
-		got := parseRules(tc.text)
-		if diff := cmp.Diff(tc.want, got); diff != "" {
-			t.Errorf("Bad rule #%d parsing: %s", i, diff)
+	if diff := cmp.Diff(want, got); diff != "" {
+		t.Errorf("bad parsing: %s", diff)
+	}
+}
+
+func TestMakeMap(t *testing.T) {
+	syn, err := getSampleSyn()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	got := makeMap(syn)
+	for color, rule := range got {
+		if color != rule.Container.Color {
+			t.Errorf("Wrong rule for %q: %v", color, rule)
 		}
+	}
+}
+
+func TestFindContents(t *testing.T) {
+	syn, err := getSampleSyn()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	rules := makeMap(syn)
+
+	tests := []struct {
+		color string
+		want  []string
+	}{
+		{"dottedblack", []string{}},
+		{"vibrantplum", []string{"dottedblack", "fadedblue"}},
+		{"shinygold", []string{"darkolive", "dottedblack", "fadedblue", "vibrantplum"}},
+	}
+
+	for _, tc := range tests {
+		got := findContents(tc.color, rules, nil)
+		sort.Strings(got)
+		if diff := cmp.Diff(tc.want, got); diff != "" {
+			t.Errorf("bad contents for %q: %s", tc.color, diff)
+		}
+	}
+}
+
+func TestCountContainers(t *testing.T) {
+	rules := parseRules(sample())
+	got := countContainers("shinygold", rules)
+	if got != 4 {
+		t.Errorf("misplaced bag: expected 4, found %d", got)
 	}
 }
