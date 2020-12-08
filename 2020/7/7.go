@@ -70,8 +70,7 @@ func makeMap(syn *Syntax) map[string]*Rule {
 	return res
 }
 
-func parseRules(data string) map[string]*Container {
-	res := make(map[string]*Container)
+func getRules(data string) map[string]*Rule {
 	parser := getParser()
 	syn := &Syntax{}
 	err := parser.ParseString("", data, syn)
@@ -79,8 +78,11 @@ func parseRules(data string) map[string]*Container {
 		log.Fatalf("error parsing data: %v", err)
 	}
 
-	rules := makeMap(syn)
+	return makeMap(syn)
+}
 
+func parseRules(rules map[string]*Rule) map[string]*Container {
+	res := make(map[string]*Container)
 	for color := range rules {
 		c := &Container{
 			CanContain: make(map[string]bool),
@@ -119,6 +121,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("can't read input: %v", err)
 	}
-	rules := parseRules(string(data))
-	fmt.Printf("# of bags that can contain %q: %d\n", color, countContainers(color, rules))
+	rules := getRules(string(data))
+	containers := parseRules(rules)
+	fmt.Printf("# of bags that can contain %q: %d\n", color, countContainers(color, containers))
 }

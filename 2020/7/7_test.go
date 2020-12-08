@@ -36,7 +36,7 @@ func getSampleSyn() (*Syntax, error) {
 }
 
 func TestParseRules(t *testing.T) {
-	got := parseRules(sample())
+	got := parseRules(getRules(sample()))
 	tests := []struct {
 		color string
 		cc    []string
@@ -183,7 +183,7 @@ func TestFindContents(t *testing.T) {
 }
 
 func TestCountContainers(t *testing.T) {
-	rules := parseRules(sample())
+	rules := parseRules(getRules(sample()))
 	got := countContainers("shinygold", rules)
 	if got != 4 {
 		t.Errorf("misplaced bag: expected 4, found %d", got)
