@@ -103,12 +103,22 @@ func parseRules(rules map[string]*Rule) map[string]*Container {
 	return res
 }
 
-func countContainers(color string, rules map[string]*Container) int {
+func countContainers(color string, containers map[string]*Container) int {
 	res := 0
-	for _, cont := range rules {
+	for _, cont := range containers {
 		if cont.CanContain[color] {
 			res++
 		}
+	}
+
+	return res
+}
+
+func countContents(color string, rules map[string]*Rule) int {
+	res := 0
+
+	for _, content := range rules[color].Bags {
+		res = res + content.Count*(1+countContents(content.Color.Color, rules))
 	}
 
 	return res
@@ -123,5 +133,6 @@ func main() {
 	}
 	rules := getRules(string(data))
 	containers := parseRules(rules)
-	fmt.Printf("# of bags that can contain %q: %d\n", color, countContainers(color, containers))
+	fmt.Printf("# of bags that can contain a %q bag: %d\n", color, countContainers(color, containers))
+	fmt.Printf("# of bags contained in a %q bag: %d\n", color, countContents(color, rules))
 }

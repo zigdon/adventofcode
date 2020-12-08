@@ -183,9 +183,29 @@ func TestFindContents(t *testing.T) {
 }
 
 func TestCountContainers(t *testing.T) {
-	rules := parseRules(getRules(sample()))
-	got := countContainers("shinygold", rules)
+	containers := parseRules(getRules(sample()))
+	got := countContainers("shinygold", containers)
 	if got != 4 {
 		t.Errorf("misplaced bag: expected 4, found %d", got)
+	}
+}
+
+func TestContContents(t *testing.T) {
+	rules := getRules(sample())
+
+	tests := []struct {
+		color string
+		want  int
+	}{
+		{"dottedblack", 0},
+		{"vibrantplum", 11},
+		{"shinygold", 32},
+	}
+
+	for _, tc := range tests {
+		got := countContents(tc.color, rules)
+		if got != tc.want {
+			t.Errorf("someone messed with our %q bag, expected %d, got %d", tc.color, tc.want, got)
+		}
 	}
 }
