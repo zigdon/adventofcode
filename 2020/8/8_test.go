@@ -51,7 +51,8 @@ func TestRun(t *testing.T) {
 	}
 
 	for i, tc := range tests {
-		got, loop := run(tc.inst)
+		code := compile(tc.inst)
+		got, loop := run(code)
 
 		if got != tc.wantAcc {
 			t.Errorf("Bad acc value for test #%d: want %d, got %d", i, tc.wantAcc, got)
