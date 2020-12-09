@@ -1,12 +1,23 @@
 package main
 
-import "testing"
+import (
+	"testing"
+
+	"github.com/google/go-cmp/cmp"
+)
 
 func sample() []int {
 	return []int{
 		35, 20, 15, 25, 47, 40, 62,
 		55, 65, 95, 102, 117, 150, 182,
 		127, 219, 299, 277, 309, 576}
+}
+
+func TestFindSeq(t *testing.T) {
+	got := findSeq(127, sample())
+	if diff := cmp.Diff([]int{15, 25, 47, 40}, got); diff != "" {
+		t.Errorf("bad seq found: -want +got\n%s", diff)
+	}
 }
 
 func TestValidateSequence(t *testing.T) {

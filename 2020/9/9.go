@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
+	"sort"
 	"strconv"
 	"strings"
 )
@@ -35,6 +36,27 @@ func validateSequence(preamble int, seq []int) int {
 	return -1
 }
 
+func findSeq(target int, seq []int) []int {
+	sum := seq[0]
+	start := 0
+	end := 1
+	for sum != target {
+		if sum < target {
+			end++
+			sum = sum + seq[end-1]
+		} else {
+			sum = sum - seq[start]
+			start++
+		}
+
+		if end >= len(seq) {
+			return []int{}
+		}
+	}
+
+	return seq[start:end]
+}
+
 func main() {
 	input := os.Args[1]
 
@@ -55,5 +77,12 @@ func main() {
 		}
 		seq = append(seq, n)
 	}
-	fmt.Println(validateSequence(25, seq))
+	invalid := validateSequence(25, seq)
+	fmt.Printf("Invalid number: %d\n", invalid)
+	sum := findSeq(invalid, seq)
+	if len(sum) > 0 {
+		fmt.Printf("seq: %v\n", sum)
+		sort.Ints(sum)
+		fmt.Println(sum[0] + sum[len(sum)-1])
+	}
 }
