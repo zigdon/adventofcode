@@ -56,12 +56,12 @@ func TestCountChains(t *testing.T) {
 		data []int
 		want int
 	}{
-		{data: []int{1, 2, 3, 4}, want: 4},
 		{data: sample1(), want: 8},
 		{data: sample2(), want: 19208},
 	}
 
 	for _, tc := range tests {
+		tc.data = append(tc.data, 0)
 		sort.Ints(tc.data)
 		got := countChains(tc.data)
 		if diff := cmp.Diff(tc.want, got); diff != "" {
