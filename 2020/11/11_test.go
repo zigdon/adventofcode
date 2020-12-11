@@ -95,7 +95,7 @@ func TestCountNear(t *testing.T) {
 
 	for i, tc := range tests {
 		var b *board
-		b = b.InitFromString(samples[tc.sampleID])
+		b = InitFromString(samples[tc.sampleID])
 		got := b.CountNear(tc.x, tc.y)
 		if got != tc.want {
 			t.Errorf("bad count at #%d: want %d got %d", i, tc.want, got)
@@ -148,8 +148,8 @@ func TestEvolve(t *testing.T) {
 
 	for i, tc := range tests {
 		var input, want *board
-		input = input.InitFromString(tc.input)
-		want = want.InitFromString(tc.want)
+		input = InitFromString(tc.input)
+		want = InitFromString(tc.want)
 		got := input.Evolve(4, false)
 		if diff := cmp.Diff(want.Spaces, got.Spaces); diff != "" {
 			t.Errorf("Bad new board in test #%d:\n%s", i, diff)
@@ -163,7 +163,7 @@ func TestEvolve(t *testing.T) {
 
 func TestCountOccupied(t *testing.T) {
 	var b *board
-	b = b.InitFromString(sample()[5])
+	b = InitFromString(sample()[5])
 	got := b.CountOccupied()
 	if got != 37 {
 		t.Errorf("wrong number of passengers: want 37 got %d", got)

@@ -31,10 +31,8 @@ type board struct {
 	LastChange int
 }
 
-func (b *board) InitFromString(rows []string) *board {
-	if b == nil {
-		b = &board{}
-	}
+func InitFromString(rows []string) *board {
+	b := &board{}
 	b.Spaces = [][]space{}
 	b.Width = 0
 	b.Height = 0
@@ -183,8 +181,7 @@ func main() {
 		log.Fatalf("error reading input: %v", err)
 	}
 
-	var b *board
-	b1 := b.InitFromString(strings.Split(string(data), "\n"))
+	b1 := InitFromString(strings.Split(string(data), "\n"))
 	gen := 0
 	for {
 		gen++
@@ -197,7 +194,7 @@ func main() {
 	}
 	fmt.Printf("Occupied: %d\n", b1.CountOccupied())
 
-	b2 := b.InitFromString(strings.Split(string(data), "\n"))
+	b2 := InitFromString(strings.Split(string(data), "\n"))
 	gen = 0
 	for {
 		gen++
