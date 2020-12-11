@@ -150,7 +150,7 @@ func TestEvolve(t *testing.T) {
 		var input, want *board
 		input = input.InitFromString(tc.input)
 		want = want.InitFromString(tc.want)
-		got := input.Evolve()
+		got := input.Evolve(4, false)
 		if diff := cmp.Diff(want.Spaces, got.Spaces); diff != "" {
 			t.Errorf("Bad new board in test #%d:\n%s", i, diff)
 		}

@@ -88,7 +88,37 @@ func (b *board) CountNear(x, y int) int {
 	return count
 }
 
-func (b *board) Evolve() *board {
+func (b *board) Look(x, y, dx, dy int) space {
+	var curX, curY = x, y
+	for {
+		curX = curX + dx
+		curY = curY + dy
+		if curX < 0 || curY < 0 || curX >= b.Width || curY >= b.Height {
+			return Floor
+		}
+		if b.Spaces[curY][curX] != Floor {
+			return b.Spaces[curY][curX]
+		}
+	}
+}
+
+func (b *board) CountSeen(x, y int) int {
+	count := 0
+	for _, dy := range []int{-1, 0, 1} {
+		for _, dx := range []int{-1, 0, 1} {
+			if dx == 0 && dy == 0 {
+				continue
+			}
+			if b.Look(x, y, dx, dy) == Occupied {
+				count++
+			}
+		}
+	}
+
+	return count
+}
+
+func (b *board) Evolve(tol int, los bool) *board {
 	next := [][]space{}
 	b.LastChange = 0
 	for y, row := range b.Spaces {
@@ -98,11 +128,16 @@ func (b *board) Evolve() *board {
 				next[y] = append(next[y], Floor)
 				continue
 			}
-			near := b.CountNear(x, y)
+			var consider int
+			if los {
+				consider = b.CountSeen(x, y)
+			} else {
+				consider = b.CountNear(x, y)
+			}
 			var n space
-			if near == 0 {
+			if consider == 0 {
 				n = Occupied
-			} else if near >= 4 {
+			} else if consider >= tol {
 				n = Empty
 			} else {
 				n = b.Spaces[y][x]
@@ -149,16 +184,30 @@ func main() {
 	}
 
 	var b *board
-	b = b.InitFromString(strings.Split(string(data), "\n"))
+	b1 := b.InitFromString(strings.Split(string(data), "\n"))
 	gen := 0
 	for {
 		gen++
-		b.Evolve()
-		log.Printf("Gen #%d: %d", gen, b.LastChange)
-		log.Print(b)
-		if b.LastChange == 0 {
+		b1.Evolve(4, false)
+		log.Printf("Gen #%d: %d", gen, b1.LastChange)
+		// log.Print(b1)
+		if b1.LastChange == 0 {
 			break
 		}
 	}
-	fmt.Printf("Occupied: %d\n", b.CountOccupied())
+	fmt.Printf("Occupied: %d\n", b1.CountOccupied())
+
+	b2 := b.InitFromString(strings.Split(string(data), "\n"))
+	gen = 0
+	for {
+		gen++
+		b2.Evolve(5, true)
+		log.Printf("Gen #%d: %d", gen, b2.LastChange)
+		// log.Print(b1)
+		if b2.LastChange == 0 {
+			break
+		}
+	}
+	fmt.Printf("Occupied: %d\n", b2.CountOccupied())
+
 }
