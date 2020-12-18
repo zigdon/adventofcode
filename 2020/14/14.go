@@ -14,6 +14,7 @@ type compy struct {
 	mask    string
 	maskOn  int
 	maskOff int
+	bits    int
 }
 
 func newCompy() *compy {
@@ -30,7 +31,8 @@ func (c *compy) setMask(newMask string) {
 	c.mask = newMask
 	c.maskOn = 0
 	c.maskOff = 0
-	for i := 0; i < len(newMask); i++ {
+	c.bits = len(newMask)
+	for i := 0; i < c.bits; i++ {
 		c.maskOn <<= 1
 		c.maskOff <<= 1
 		if newMask[i] == '1' {
@@ -52,13 +54,48 @@ func (c *compy) sumMem() int {
 	return sum
 }
 
-func (c *compy) set(addr, val int) {
+func (c *compy) setMaskedVal(addr, val int) {
 	masked := val&c.maskOff | c.maskOn
-	log.Printf("set(%d): masked(%b) = %b\n", addr, val, masked)
+	log.Printf("setMaskedVal(%d): masked(%b) = %b\n", addr, val, masked)
 	c.mem[addr] = masked
 }
 
-func (c *compy) runLines(lines []string) {
+func (c *compy) setMaskedAddr(addr, val int) []int {
+	var res []int
+	bits := []int{0}
+	format := fmt.Sprintf("%%0%db", c.bits)
+	masked := []byte(fmt.Sprintf(format, addr))
+	log.Printf("addr:   "+format, addr)
+	log.Printf("mask:   %s", c.mask)
+	for i := c.bits - 1; i >= 0; i-- {
+		if c.mask[i] == '1' {
+			masked[i] = '1'
+		} else if c.mask[i] == 'X' {
+			masked[i] = '0'
+			bit := 1 << (c.bits - i - 1)
+			var newBits []int
+			for _, b := range bits {
+				newBits = append(newBits, b+bit)
+			}
+			bits = append(bits, newBits...)
+		}
+	}
+	base, err := strconv.ParseInt(string(masked), 2, 64)
+	log.Printf("masked: %s (%d)", masked, base)
+	log.Printf("bits: %v", bits)
+	if err != nil {
+		log.Fatalf("bad mask conversion %q: %v", masked, err)
+	}
+
+	for _, a := range bits {
+		c.mem[a+int(base)] = val
+		res = append(res, a+int(base))
+	}
+
+	return res
+}
+
+func (c *compy) runLines(lines []string, mode bool) {
 	for _, line := range lines {
 		line = strings.TrimSpace(line)
 		if len(line) == 0 {
@@ -78,7 +115,12 @@ func (c *compy) runLines(lines []string) {
 		if err != nil {
 			log.Fatalf("bad value in %q: %v", line, err)
 		}
-		c.set(addr, val)
+
+		if mode {
+			c.setMaskedAddr(addr, val)
+		} else {
+			c.setMaskedVal(addr, val)
+		}
 	}
 }
 
@@ -89,6 +131,10 @@ func main() {
 		log.Fatalf("can't read input: %v", err)
 	}
 	c := newCompy()
-	c.runLines(strings.Split(string(data), "\n"))
+	c.runLines(strings.Split(string(data), "\n"), false)
+	fmt.Printf("memory sum: %d\n", c.sumMem())
+
+	c = newCompy()
+	c.runLines(strings.Split(string(data), "\n"), true)
 	fmt.Printf("memory sum: %d\n", c.sumMem())
 }
