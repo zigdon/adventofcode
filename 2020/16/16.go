@@ -63,8 +63,8 @@ func newTicket(line string) *ticket {
 	return t
 }
 
-func parseInput(path string) ([]*validator, *ticket, []*ticket) {
-	vs := []*validator{}
+func parseInput(path string) (map[string]*validator, *ticket, []*ticket) {
+	vs := make(map[string]*validator)
 	t := &ticket{}
 	ts := []*ticket{}
 
@@ -81,7 +81,8 @@ func parseInput(path string) ([]*validator, *ticket, []*ticket) {
 			continue
 		}
 		if section == 0 { // rules
-			vs = append(vs, newValidator(line))
+			v := newValidator(line)
+			vs[v.name] = v
 		} else if section == 1 { // my ticket
 			if strings.Contains(line, ":") {
 				continue
@@ -98,7 +99,7 @@ func parseInput(path string) ([]*validator, *ticket, []*ticket) {
 	return vs, t, ts
 }
 
-func findBadFields(t *ticket, vs []*validator) []int {
+func findBadFields(t *ticket, vs map[string]*validator) []int {
 	bad := []int{}
 	for _, f := range t.fs {
 		valid := false
@@ -115,13 +116,102 @@ func findBadFields(t *ticket, vs []*validator) []int {
 	return bad
 }
 
-func main() {
-	validators, _, otherTickets := parseInput(os.Args[1])
-	bad := 0
-	for _, t := range otherTickets {
-		for _, b := range findBadFields(t, validators) {
-			bad += b
+func identifyFields(vs map[string]*validator, ts []*ticket) []string {
+	allValidators := []string{}
+	for name := range vs {
+		allValidators = append(allValidators, name)
+	}
+
+	mapping := make(map[int]map[string]bool)
+	for n := range ts[0].fs {
+		ruledOut := make(map[string]bool)
+		mapping[n] = make(map[string]bool)
+		for _, tic := range ts {
+			for name, v := range vs {
+				if ruledOut[name] {
+					continue
+				}
+				if v.ok(tic.fs[n]) {
+					mapping[n][name] = true
+					continue
+				}
+				ruledOut[name] = true
+				mapping[n][name] = false
+			}
 		}
 	}
-	fmt.Println(bad)
+	known := make(map[string]int)
+
+	cont := true
+	for cont {
+		cont = false
+		for num, opts := range mapping {
+			single := ""
+			for name, possible := range opts {
+				if !possible {
+					continue
+				}
+				if _, ok := known[name]; ok {
+					continue
+				}
+				if single == "" {
+					single = name
+				} else {
+					single = ""
+					break
+				}
+			}
+			if single != "" {
+				log.Printf("column %d must be %s\n\n\n", num, single)
+				known[single] = num
+				cont = true
+				break
+			}
+		}
+	}
+
+	res := make([]string, len(allValidators))
+	for k, v := range known {
+		res[v] = k
+	}
+
+	return res
+}
+
+func dumpKnown(mapping map[int]map[string]bool) {
+	for i := 0; ; i++ {
+		v, ok := mapping[i]
+		if !ok {
+			break
+		}
+		fmt.Printf("%d: ", i)
+		for n, p := range v {
+			if p {
+				fmt.Printf("%s ", n)
+			}
+		}
+		fmt.Println()
+	}
+
+}
+
+func main() {
+	validators, myTicket, otherTickets := parseInput(os.Args[1])
+	goodTickets := []*ticket{}
+	for _, t := range otherTickets {
+		if len(findBadFields(t, validators)) == 0 {
+			goodTickets = append(goodTickets, t)
+		}
+	}
+
+	fields := identifyFields(validators, goodTickets)
+	ckSum := 1
+	for i, name := range fields {
+		if !strings.HasPrefix(name, "departure") {
+			continue
+		}
+		log.Printf("%s: %d", name, myTicket.fs[i])
+		ckSum *= myTicket.fs[i]
+	}
+	fmt.Println(ckSum)
 }

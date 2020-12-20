@@ -46,10 +46,10 @@ func TestNewTicket(t *testing.T) {
 }
 
 func TestFindBadFields(t *testing.T) {
-	vs := []*validator{
-		newValidator("class: 1-3 or 5-7"),
-		newValidator("row: 6-11 or 33-44"),
-		newValidator("seat: 13-40 or 45-50"),
+	vs := map[string]*validator{
+		"class": newValidator("class: 1-3 or 5-7"),
+		"row":   newValidator("row: 6-11 or 33-44"),
+		"seat":  newValidator("seat: 13-40 or 45-50"),
 	}
 
 	tests := []struct {
@@ -66,5 +66,25 @@ func TestFindBadFields(t *testing.T) {
 		if diff := cmp.Diff(tc.want, findBadFields(tc.tic, vs)); diff != "" {
 			t.Errorf("wrong bad fields: %s", diff)
 		}
+	}
+}
+
+func TestIdentifyFields(t *testing.T) {
+	vs := map[string]*validator{
+		"class": newValidator("class: 0-1 or 4-19"),
+		"row":   newValidator("row: 0-5 or 8-19"),
+		"seat":  newValidator("seat: 0-13 or 16-19"),
+	}
+
+	ts := []*ticket{
+		newTicket("3,9,18"),
+		newTicket("15,1,5"),
+		newTicket("5,14,9"),
+	}
+
+	got := identifyFields(vs, ts)
+	want := []string{"row", "class", "seat"}
+	if diff := cmp.Diff(want, got); diff != "" {
+		t.Errorf("bad at identifying:\n%s", diff)
 	}
 }
