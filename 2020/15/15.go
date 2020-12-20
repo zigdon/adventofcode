@@ -15,7 +15,8 @@ type ent struct {
 func getSequence(init []int, pos int) int {
 	mem := make(map[int]int)
 	var seq []int
-	var last, next int
+	var next int
+	last := -1
 	for step := 0; step < len(init); step++ {
 		next = init[step]
 		mem[last] = step
