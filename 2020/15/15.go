@@ -42,10 +42,12 @@ func getSequence(init []int, pos int) int {
 
 func main() {
 	input := []int{}
+	count, _ := strconv.Atoi(os.Args[2])
 	for _, s := range strings.Split(os.Args[1], ",") {
 		n, _ := strconv.Atoi(s)
 		input = append(input, n)
 	}
+
 	fmt.Println(input)
-	fmt.Println(getSequence(input, 2020))
+	fmt.Println(getSequence(input, count))
 }

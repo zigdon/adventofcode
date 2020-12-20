@@ -8,6 +8,7 @@ func TestGetSequence(t *testing.T) {
 		want     int
 		pos      int
 	}{
+		// Part 1
 		{starting: []int{0, 3, 6}, want: 436},
 		{starting: []int{0, 3, 6}, pos: 4, want: 0},
 		{starting: []int{0, 3, 6}, pos: 5, want: 3},
@@ -22,6 +23,14 @@ func TestGetSequence(t *testing.T) {
 		{starting: []int{2, 3, 1}, want: 78},
 		{starting: []int{3, 2, 1}, want: 438},
 		{starting: []int{3, 1, 2}, want: 1836},
+		// Part 2
+		{starting: []int{0, 3, 6}, pos: 30000000, want: 175594},
+		{starting: []int{1, 3, 2}, pos: 30000000, want: 2578},
+		{starting: []int{2, 1, 3}, pos: 30000000, want: 3544142},
+		{starting: []int{1, 2, 3}, pos: 30000000, want: 261214},
+		{starting: []int{2, 3, 1}, pos: 30000000, want: 6895259},
+		{starting: []int{3, 2, 1}, pos: 30000000, want: 18},
+		{starting: []int{3, 1, 2}, pos: 30000000, want: 362},
 	}
 
 	for i, tc := range tests {
