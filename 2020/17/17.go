@@ -143,8 +143,14 @@ func (s *space) evolve() {
 
 func main() {
 	input := os.Args[1]
-	_, err := ioutil.ReadFile(input)
+	data, err := ioutil.ReadFile(input)
 	if err != nil {
 		log.Fatalf("can't read %q: %v", input, err)
 	}
+	s := newSpace()
+	s.loadSlice(string(data), 0)
+	for i := 1; i <= 6; i++ {
+		s.evolve()
+	}
+	fmt.Println(len(s.getTrue()))
 }

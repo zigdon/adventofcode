@@ -136,10 +136,61 @@ func TestEvolve(t *testing.T) {
 		"..#",
 		".#."}, "\n"), 1)
 	s.evolve()
-	t.Log("After:")
+	t.Log("After 1:")
 	t.Log(s.dump())
 	if diff := cmp.Diff(want.dump(), s.dump()); diff != "" {
-		t.Errorf("bad evolution: %s", diff)
+		t.Errorf("bad evolution gen 1: %s", diff)
 	}
 
+	want = newSpace()
+	want.loadSlice(strings.Join([]string{
+		".....",
+		".....",
+		"..#..",
+		".....",
+		"....."}, "\n"), -2)
+
+	want.loadSlice(strings.Join([]string{
+		"..#..",
+		".#..#",
+		"....#",
+		".#...",
+		"....."}, "\n"), -1)
+
+	want.loadSlice(strings.Join([]string{
+		"##...",
+		"##...",
+		"#....",
+		"....#",
+		".###."}, "\n"), 0)
+
+	want.loadSlice(strings.Join([]string{
+		"..#..",
+		".#..#",
+		"....#",
+		".#...",
+		"....."}, "\n"), 1)
+
+	want.loadSlice(strings.Join([]string{
+		".....",
+		".....",
+		"..#..",
+		".....",
+		"....."}, "\n"), 2)
+
+	s.evolve()
+	t.Log("After 2:")
+	t.Log(s.dump())
+	if diff := cmp.Diff(want.dump(), s.dump()); diff != "" {
+		t.Errorf("bad evolution gen 2: %s", diff)
+	}
+
+	// gens 3-6
+	for i := 3; i <= 6; i++ {
+		s.evolve()
+	}
+	cnt := len(s.getTrue())
+	if cnt != 112 {
+		t.Errorf("wrong number of actives: want 112 got %d", cnt)
+	}
 }
