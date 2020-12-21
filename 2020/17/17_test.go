@@ -39,27 +39,27 @@ func coordSort(data []coord) func(int, int) bool {
 	}
 }
 
-func TestGetSet(t *testing.T) {
+func _TestGetSet(t *testing.T) {
 	tests := []struct {
 		pts  []point
 		want []coord
 	}{
 		{
 			pts: []point{
-				{coord{1, 1, 1}, true},
-				{coord{1, 2, 1}, true},
-				{coord{2, -1, 2}, true},
+				{coord{1, 1, 1, 0}, true},
+				{coord{1, 2, 1, 0}, true},
+				{coord{2, -1, 2, 0}, true},
 			},
-			want: []coord{coord{1, 1, 1}, coord{1, 2, 1}, coord{2, -1, 2}},
+			want: []coord{coord{1, 1, 1, 0}, coord{1, 2, 1, 0}, coord{2, -1, 2, 0}},
 		},
 		{
 			pts: []point{
-				{coord{1, 1, 1}, true},
-				{coord{1, 1, 1}, false},
-				{coord{2, -1, 2}, false},
-				{coord{2, -1, 2}, true},
+				{coord{1, 1, 1, 0}, true},
+				{coord{1, 1, 1, 0}, false},
+				{coord{2, -1, 2, 0}, false},
+				{coord{2, -1, 2, 0}, true},
 			},
-			want: []coord{coord{2, -1, 2}},
+			want: []coord{coord{2, -1, 2, 0}},
 		},
 	}
 
@@ -79,12 +79,17 @@ func TestGetSet(t *testing.T) {
 	}
 }
 
-func TestLoadSlice(t *testing.T) {
+func _TestLoadSlice(t *testing.T) {
 	data := strings.Join([]string{".#.", "..#", "###"}, "\n")
 	s := newSpace()
-	s.loadSlice(data, 2)
+	s.loadSlice(data, 2, 0)
 	got := s.getTrue()
-	want := []coord{{1, 0, 2}, {2, 1, 2}, {0, 2, 2}, {1, 2, 2}, {2, 2, 2}}
+	want := []coord{
+		{1, 0, 2, 0},
+		{2, 1, 2, 0},
+		{0, 2, 2, 0},
+		{1, 2, 2, 0},
+		{2, 2, 2, 0}}
 	sort.Slice(got, coordSort(got))
 	sort.Slice(want, coordSort(want))
 	if diff := cmp.Diff(want, got); diff != "" {
@@ -92,12 +97,12 @@ func TestLoadSlice(t *testing.T) {
 	}
 }
 
-func TestCount(t *testing.T) {
+func _TestCount(t *testing.T) {
 	s := newSpace()
 	data := strings.Join([]string{".#.", "..#", "###"}, "\n")
-	s.loadSlice(data, 0)
+	s.loadSlice(data, 0, 0)
 	data = strings.Join([]string{"#.#"}, "\n")
-	s.loadSlice(data, 1)
+	s.loadSlice(data, 1, 0)
 	tests := []struct {
 		x, y, z int
 		want    int
@@ -108,17 +113,17 @@ func TestCount(t *testing.T) {
 	}
 
 	for _, tc := range tests {
-		got := s.count(coord{tc.x, tc.y, tc.z})
+		got := s.count(coord{tc.x, tc.y, tc.z, 0})
 		if got != tc.want {
 			t.Errorf("bad count at %d,%d,%d: want %d, got %d", tc.x, tc.y, tc.z, tc.want, got)
 		}
 	}
 }
 
-func TestEvolve(t *testing.T) {
+func _TestEvolve(t *testing.T) {
 	s := newSpace()
 	data := strings.Join([]string{".#.", "..#", "###"}, "\n")
-	s.loadSlice(data, 0)
+	s.loadSlice(data, 0, 0)
 	t.Log("Before:")
 	t.Log(s.dump())
 
@@ -126,15 +131,15 @@ func TestEvolve(t *testing.T) {
 	want.loadSlice(strings.Join([]string{
 		"#..",
 		"..#",
-		".#."}, "\n"), -1)
+		".#."}, "\n"), -1, 0)
 	want.loadSlice(strings.Join([]string{
 		"#.#",
 		".##",
-		".#."}, "\n"), 0)
+		".#."}, "\n"), 0, 0)
 	want.loadSlice(strings.Join([]string{
 		"#..",
 		"..#",
-		".#."}, "\n"), 1)
+		".#."}, "\n"), 1, 0)
 	s.evolve()
 	t.Log("After 1:")
 	t.Log(s.dump())
@@ -148,35 +153,35 @@ func TestEvolve(t *testing.T) {
 		".....",
 		"..#..",
 		".....",
-		"....."}, "\n"), -2)
+		"....."}, "\n"), -2, 0)
 
 	want.loadSlice(strings.Join([]string{
 		"..#..",
 		".#..#",
 		"....#",
 		".#...",
-		"....."}, "\n"), -1)
+		"....."}, "\n"), -1, 0)
 
 	want.loadSlice(strings.Join([]string{
 		"##...",
 		"##...",
 		"#....",
 		"....#",
-		".###."}, "\n"), 0)
+		".###."}, "\n"), 0, 0)
 
 	want.loadSlice(strings.Join([]string{
 		"..#..",
 		".#..#",
 		"....#",
 		".#...",
-		"....."}, "\n"), 1)
+		"....."}, "\n"), 1, 0)
 
 	want.loadSlice(strings.Join([]string{
 		".....",
 		".....",
 		"..#..",
 		".....",
-		"....."}, "\n"), 2)
+		"....."}, "\n"), 2, 0)
 
 	s.evolve()
 	t.Log("After 2:")
@@ -192,5 +197,59 @@ func TestEvolve(t *testing.T) {
 	cnt := len(s.getTrue())
 	if cnt != 112 {
 		t.Errorf("wrong number of actives: want 112 got %d", cnt)
+	}
+}
+
+func TestEvolve4d(t *testing.T) {
+	s := newSpace()
+	data := strings.Join([]string{".#.", "..#", "###"}, "\n")
+	s.loadSlice(data, 0, 0)
+	t.Log("Before:")
+	t.Log(s.dump())
+
+	want := newSpace()
+	want.loadSlice(strings.Join([]string{
+		"#..",
+		"..#",
+		".#."}, "\n"), -1, -1)
+	want.loadSlice(strings.Join([]string{
+		"#..",
+		"..#",
+		".#."}, "\n"), 0, -1)
+	want.loadSlice(strings.Join([]string{
+		"#..",
+		"..#",
+		".#."}, "\n"), 1, -1)
+	want.loadSlice(strings.Join([]string{
+		"#..",
+		"..#",
+		".#."}, "\n"), -1, 0)
+	want.loadSlice(strings.Join([]string{
+		"#.#",
+		".##",
+		".#."}, "\n"), 0, 0)
+	want.loadSlice(strings.Join([]string{
+		"#..",
+		"..#",
+		".#."}, "\n"), 1, 0)
+	want.loadSlice(strings.Join([]string{
+		"#..",
+		"..#",
+		".#."}, "\n"), -1, 1)
+	want.loadSlice(strings.Join([]string{
+		"#..",
+		"..#",
+		".#."}, "\n"), 0, 1)
+	want.loadSlice(strings.Join([]string{
+		"#..",
+		"..#",
+		".#."}, "\n"), 1, 1)
+
+	s.evolve4d()
+	t.Log("After 1:")
+	got := s.dump()
+	t.Log(got)
+	if diff := cmp.Diff(want.dump(), got); diff != "" {
+		t.Errorf("bad 4d evolution gen 1: %s", diff)
 	}
 }

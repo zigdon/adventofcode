@@ -9,14 +9,14 @@ import (
 )
 
 type coord struct {
-	X, Y, Z int
+	X, Y, Z, W int
 }
 
 type space struct {
-	Data        map[coord]bool
-	Lx, Ly, Lz  int
-	Hx, Hy, Hz  int
-	Initialized bool
+	Data           map[coord]bool
+	Lx, Ly, Lz, Lw int
+	Hx, Hy, Hz, Hw int
+	Initialized    bool
 }
 
 func newSpace() *space {
@@ -31,6 +31,8 @@ func (s *space) set(p coord, v bool) {
 		s.Ly = p.Y
 		s.Hz = p.Z
 		s.Lz = p.Z
+		s.Hw = p.W
+		s.Lw = p.W
 		s.Initialized = true
 	} else if v {
 		if p.X > s.Hx {
@@ -50,6 +52,12 @@ func (s *space) set(p coord, v bool) {
 		}
 		if p.Z < s.Lz {
 			s.Lz = p.Z
+		}
+		if p.W > s.Hw {
+			s.Hw = p.W
+		}
+		if p.W < s.Lw {
+			s.Lw = p.W
 		}
 	}
 
@@ -71,11 +79,11 @@ func (s *space) getTrue() []coord {
 	return res
 }
 
-func (s *space) loadSlice(slice string, z int) {
+func (s *space) loadSlice(slice string, z, w int) {
 	for y, line := range strings.Split(slice, "\n") {
 		for x, c := range line {
 			if c == '#' {
-				s.set(coord{x, y, z}, true)
+				s.set(coord{x, y, z, w}, true)
 			}
 		}
 	}
@@ -86,11 +94,13 @@ func (s *space) count(p coord) int {
 	for _, x := range []int{-1, 0, 1} {
 		for _, y := range []int{-1, 0, 1} {
 			for _, z := range []int{-1, 0, 1} {
-				if x == 0 && y == 0 && z == 0 {
-					continue
-				}
-				if s.get(coord{p.X + x, p.Y + y, p.Z + z}) {
-					res++
+				for _, w := range []int{-1, 0, 1} {
+					if x == 0 && y == 0 && z == 0 && w == 0 {
+						continue
+					}
+					if s.get(coord{p.X + x, p.Y + y, p.Z + z, p.W + w}) {
+						res++
+					}
 				}
 			}
 		}
@@ -100,17 +110,20 @@ func (s *space) count(p coord) int {
 
 func (s *space) dump() string {
 	var res string
-	for z := s.Lz; z <= s.Hz; z++ {
-		res += fmt.Sprintf("Layer: %d\n", z)
-		for y := s.Ly; y <= s.Hy; y++ {
-			for x := s.Lx; x <= s.Hx; x++ {
-				if s.get(coord{x, y, z}) {
-					res += "#"
-				} else {
-					res += "."
+	for w := s.Lw; w <= s.Hw; w++ {
+		for z := s.Lz; z <= s.Hz; z++ {
+			res += fmt.Sprintf("Layer: %d, %d\n", z, w)
+			for y := s.Ly; y <= s.Hy; y++ {
+				for x := s.Lx; x <= s.Hx; x++ {
+					if s.get(coord{x, y, z, w}) {
+						res += "#"
+					} else {
+						res += "."
+					}
 				}
+				res += "\n"
 			}
-			res += "\n"
+			res += "\n\n"
 		}
 	}
 
@@ -122,7 +135,7 @@ func (s *space) evolve() {
 	for x := s.Lx - 1; x <= s.Hx+1; x++ {
 		for y := s.Ly - 1; y <= s.Hy+1; y++ {
 			for z := s.Lz - 1; z <= s.Hz+1; z++ {
-				p := coord{x, y, z}
+				p := coord{x, y, z, 0}
 				cnt := s.count(p)
 				if s.get(p) {
 					if cnt == 2 || cnt == 3 {
@@ -137,8 +150,34 @@ func (s *space) evolve() {
 		}
 	}
 	s.Data = next.Data
-	s.Lx, s.Ly, s.Lz = next.Lx, next.Ly, next.Lz
-	s.Hx, s.Hy, s.Hz = next.Hx, next.Hy, next.Hz
+	s.Lx, s.Ly, s.Lz, s.Lw = next.Lx, next.Ly, next.Lz, next.Lw
+	s.Hx, s.Hy, s.Hz, s.Lw = next.Hx, next.Hy, next.Hz, next.Hw
+}
+
+func (s *space) evolve4d() {
+	next := newSpace()
+	for x := s.Lx - 1; x <= s.Hx+1; x++ {
+		for y := s.Ly - 1; y <= s.Hy+1; y++ {
+			for z := s.Lz - 1; z <= s.Hz+1; z++ {
+				for w := s.Lw - 1; w <= s.Hw+1; w++ {
+					p := coord{x, y, z, w}
+					cnt := s.count(p)
+					if s.get(p) {
+						if cnt == 2 || cnt == 3 {
+							next.set(p, true)
+						}
+					} else {
+						if cnt == 3 {
+							next.set(p, true)
+						}
+					}
+				}
+			}
+		}
+	}
+	s.Data = next.Data
+	s.Lx, s.Ly, s.Lz, s.Lw = next.Lx, next.Ly, next.Lz, next.Lw
+	s.Hx, s.Hy, s.Hz, s.Hw = next.Hx, next.Hy, next.Hz, next.Hw
 }
 
 func main() {
@@ -148,9 +187,16 @@ func main() {
 		log.Fatalf("can't read %q: %v", input, err)
 	}
 	s := newSpace()
-	s.loadSlice(string(data), 0)
+	s.loadSlice(string(data), 0, 0)
 	for i := 1; i <= 6; i++ {
 		s.evolve()
+	}
+	fmt.Println(len(s.getTrue()))
+
+	s = newSpace()
+	s.loadSlice(string(data), 0, 0)
+	for i := 1; i <= 6; i++ {
+		s.evolve4d()
 	}
 	fmt.Println(len(s.getTrue()))
 }
