@@ -10,6 +10,28 @@ import (
 
 type Transformation func(int, interface{}) (interface{}, error)
 
+func AsInts(in []interface{}) []int {
+  out := []int{}
+  for _, n := range in {
+	l, ok := n.(int)
+	if !ok {
+		log.Fatalf("Couldn't cast %T to int", n)
+	}
+	out = append(out, l)
+  }
+
+  return out
+}
+
+func AsStrings(in []interface{}) []string {
+  out := []string{}
+  for _, n := range in {
+	out = append(out, fmt.Sprintf("%s", n))
+  }
+
+  return out
+}
+
 // ReadTransformedFile reads a text file.
 func ReadTransformedFile(path string, fs ...Transformation) []interface{} {
 	text, err := ioutil.ReadFile(path)
@@ -61,7 +83,7 @@ func SplitWords(i int, in interface{}) (interface{}, error) {
 	return words, nil
 }
 
-// ReadIntFile reads a text file of integers, one per line.
+// Ints transforms lines to ints
 func Ints(i int, in interface{}) (interface{}, error) {
 	l, ok := in.(string)
 	if !ok {
