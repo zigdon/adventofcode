@@ -73,14 +73,7 @@ func SplitWords(i int, in interface{}) (interface{}, error) {
 	if !ok {
 		return nil, fmt.Errorf("SplitWords expects string, got %T", l)
 	}
-	words := []string{}
-	for _, w := range strings.Split(l, " ") {
-		w := strings.TrimSpace(w)
-		if len(w) > 0 {
-			words = append(words, w)
-		}
-	}
-	return words, nil
+	return strings.Fields(l), nil
 }
 
 // Ints transforms lines to ints
