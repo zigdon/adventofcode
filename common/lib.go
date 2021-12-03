@@ -13,9 +13,10 @@ type Transformation func(int, interface{}) (interface{}, error)
 func AsInts(in []interface{}) []int {
   out := []int{}
   for _, n := range in {
-	l, ok := n.(int)
-	if !ok {
-		log.Fatalf("Couldn't cast %T to int", n)
+	l, err := strconv.Atoi(fmt.Sprintf("%s", n))
+	if err != nil {
+		log.Printf("*** Couldn't cast %T to int", n)
+		continue
 	}
 	out = append(out, l)
   }
@@ -26,6 +27,10 @@ func AsInts(in []interface{}) []int {
 func AsStrings(in []interface{}) []string {
   out := []string{}
   for _, n := range in {
+	if fmt.Sprintf("%T", n) != "string" {
+	  log.Printf("*** Skipping %q", n)
+	  continue
+	}
 	out = append(out, fmt.Sprintf("%s", n))
   }
 
@@ -36,7 +41,8 @@ func AsStrings(in []interface{}) []string {
 func ReadTransformedFile(path string, fs ...Transformation) []interface{} {
 	text, err := ioutil.ReadFile(path)
 	if err != nil {
-		log.Fatalf("Can't read input: %v", err)
+		log.Printf("*** Can't read input: %v", err)
+		return nil
 	}
 	var data []interface{}
 LINE:
@@ -55,7 +61,7 @@ LINE:
 	return data
 }
 
-// IgnoreBlankLines trims spaces, skips blank lines.
+// IgnoreBlankLines skips blank lines.
 func IgnoreBlankLines(i int, in interface{}) (interface{}, error) {
 	l, ok := in.(string)
 	if !ok {
