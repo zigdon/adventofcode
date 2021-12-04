@@ -1,6 +1,9 @@
 package common
 
 import (
+	"io/ioutil"
+	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -189,4 +192,111 @@ func TestInts(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestRange(t *testing.T) {
+	sample := strings.Join([]string{
+		"10 two",
+		"   ",
+		"15",
+		"165",
+	}, "\n")
+	samplePath := filepath.Join(t.TempDir(), "sample.txt")
+	err := ioutil.WriteFile(samplePath, []byte(sample), 0644)
+	if err != nil {
+		t.Fatalf("Can't write sample.txt: %v", err)
+	}
+
+	tests := []struct {
+		desc string
+		fs   []Transformation
+		want []interface{}
+	}{
+		{
+			desc: "(2-): skip blanks, ints",
+			fs:   []Transformation{Range(2, -1, IgnoreBlankLines, Ints)},
+			want: []interface{}{"10 two", "   ", 15, 165},
+		},
+		{
+			desc: "skip blanks, (2-): ints",
+			fs:   []Transformation{IgnoreBlankLines, Range(2, -1, Ints)},
+			want: []interface{}{"10 two", 15, 165},
+		},
+		{
+			desc: "skip blanks, (2-3): ints",
+			fs:   []Transformation{IgnoreBlankLines, Range(2, 3, Ints)},
+			want: []interface{}{"10 two", 15, "165"},
+		},
+		{
+			desc: "(-3): skip blanks, (0-2): split words, (2-3): ints",
+			fs: []Transformation{
+				Range(-1, 3, IgnoreBlankLines),
+				Range(0, 2, SplitWords),
+				Range(2, 3, Ints),
+			},
+			want: []interface{}{[]string{"10", "two"}, 15, "165"},
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.desc, func(t *testing.T) {
+			got := ReadTransformedFile(samplePath, tc.fs...)
+			if diff := cmp.Diff(tc.want, got); diff != "" {
+				t.Errorf("Bad range:\n%s", diff)
+			}
+		})
+	}
+}
+
+func TestBuffer(t *testing.T) {
+	sample := strings.Join([]string{
+		"a b c d",
+		"   ",
+		"aa ab ac",
+		"ba bb bc",
+		"",
+		"ca cb cc",
+		"da db dc",
+		"",
+	}, "\n")
+	samplePath := filepath.Join(t.TempDir(), "sample.txt")
+	err := ioutil.WriteFile(samplePath, []byte(sample), 0644)
+	if err != nil {
+		t.Fatalf("Can't write sample.txt: %v", err)
+	}
+
+	tests := []struct {
+		desc string
+		fs   []Transformation
+		want interface{}
+	}{
+		{
+			desc: "split words, then buffer",
+			fs:   []Transformation{SplitWords, Block},
+			want: []interface{}{
+				[]interface{}{[]string{"a", "b", "c", "d"}},
+				[]interface{}{[]string{"aa", "ab", "ac"}, []string{"ba", "bb", "bc"}},
+				[]interface{}{[]string{"ca", "cb", "cc"}, []string{"da", "db", "dc"}},
+			},
+		},
+		{
+			desc: "just buffer",
+			fs:   []Transformation{Block},
+			want: []interface{}{
+				[]interface{}{"a b c d", "   ", "aa ab ac", "ba bb bc"},
+				[]interface{}{"ca cb cc", "da db dc"},
+			},
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.desc, func(t *testing.T) {
+			got := ReadTransformedFile(samplePath, tc.fs...)
+
+			if diff := cmp.Diff(tc.want, got); diff != "" {
+				t.Errorf("Bad buffering:\n%s", diff)
+			}
+		})
+	}
+
 }
