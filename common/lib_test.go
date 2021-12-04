@@ -42,6 +42,44 @@ func TestAsInts(t *testing.T) {
 	}
 }
 
+func TestAsIntGrid(t *testing.T) {
+	tests := []struct {
+		desc string
+		in   []interface{}
+		want [][]int
+	}{
+		{
+			desc: "single string",
+			in:   []interface{}{"1"},
+			want: [][]int{{1}},
+		},
+		{
+			desc: "string array",
+			in:   []interface{}{"1", "2"},
+			want: [][]int{{1}, {2}},
+		},
+		{
+			desc: "multiple lists",
+			in:   []interface{}{[]interface{}{"1", "2"}, []interface{}{"3", "4"}},
+			want: [][]int{{1, 2}, {3, 4}},
+		},
+		{
+			desc: "multiple mixed lists",
+			in:   []interface{}{[]interface{}{"1", 2}, []interface{}{3, "4"}},
+			want: [][]int{{1, 2}, {3, 4}},
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.desc, func(t *testing.T) {
+			got := AsIntGrid(tc.in)
+			if diff := cmp.Diff(tc.want, got); diff != "" {
+				t.Errorf("bad int grid:\n%s", diff)
+			}
+		})
+	}
+}
+
 func TestAsStrings(t *testing.T) {
 	tests := []struct {
 		desc string
@@ -72,10 +110,10 @@ func TestAsStrings(t *testing.T) {
 
 func TestIgnoreBlankLines(t *testing.T) {
 	tests := []struct {
-		desc    string
-		in      interface{}
-		want    interface{}
-		wantErr bool
+		desc     string
+		in       interface{}
+		want     interface{}
+		wantSkip bool
 	}{
 		{
 			desc: "fine line",
@@ -83,26 +121,26 @@ func TestIgnoreBlankLines(t *testing.T) {
 			want: "one",
 		},
 		{
-			desc:    "blank line",
-			in:      "    ",
-			want:    "",
-			wantErr: true,
+			desc:     "blank line",
+			in:       "    ",
+			want:     "",
+			wantSkip: true,
 		},
 		{
-			desc:    "not string",
-			in:      []int{1, 2},
-			wantErr: true,
+			desc: "not string",
+			in:   []int{1, 2},
+			want: []int{1, 2},
 		},
 	}
 
 	for _, tc := range tests {
 		t.Run(tc.desc, func(t *testing.T) {
-			got, err := IgnoreBlankLines(0, tc.in)
+			_, got, err := IgnoreBlankLines(0, tc.in)
+			if (err == skipLine) != tc.wantSkip {
+				t.Errorf("unexpected skipLine: want %v, got %v", tc.wantSkip, err)
+			}
 			if diff := cmp.Diff(tc.want, got); diff != "" {
 				t.Errorf("bad blanks:\n%s", diff)
-			}
-			if (err != nil) != tc.wantErr {
-				t.Errorf("unexpected error status: want %v, got %v", tc.wantErr, err)
 			}
 		})
 	}
@@ -110,10 +148,9 @@ func TestIgnoreBlankLines(t *testing.T) {
 
 func TestSplitWords(t *testing.T) {
 	tests := []struct {
-		desc    string
-		in      interface{}
-		want    interface{}
-		wantErr bool
+		desc string
+		in   interface{}
+		want interface{}
 	}{
 		{
 			desc: "single word",
@@ -136,20 +173,20 @@ func TestSplitWords(t *testing.T) {
 			want: []string{"word!"},
 		},
 		{
-			desc:    "not string",
-			in:      []int{1, 2},
-			wantErr: true,
+			desc: "not string",
+			in:   []int{1, 2},
+			want: []int{1, 2},
 		},
 	}
 
 	for _, tc := range tests {
 		t.Run(tc.desc, func(t *testing.T) {
-			got, err := SplitWords(0, tc.in)
+			_, got, err := SplitWords(0, tc.in)
+			if err != nil {
+				t.Errorf("unexpected error: %v", err)
+			}
 			if diff := cmp.Diff(tc.want, got); diff != "" {
 				t.Errorf("bad words:\n%s", diff)
-			}
-			if (err != nil) != tc.wantErr {
-				t.Errorf("unexpected error status: want %v, got %v", tc.wantErr, err)
 			}
 		})
 	}
@@ -174,16 +211,15 @@ func TestInts(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			desc:    "not strings",
-			in:      20,
-			want:    nil,
-			wantErr: true,
+			desc: "not strings",
+			in:   20,
+			want: 20,
 		},
 	}
 
 	for _, tc := range tests {
 		t.Run(tc.desc, func(t *testing.T) {
-			got, err := Ints(0, tc.in)
+			_, got, err := Ints(0, tc.in)
 			if diff := cmp.Diff(tc.want, got); diff != "" {
 				t.Errorf("bad ints:\n%s", diff)
 			}

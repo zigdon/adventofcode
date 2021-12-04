@@ -19,13 +19,11 @@ type board struct {
 	cache    map[int]coord
 }
 
-func (b *board) create(data interface{}) *board {
+func (b *board) load(data [][]int) *board {
 	b.cache = make(map[int]coord)
-	d := data.([]interface{})
-	for y, l := range d {
+	for y, l := range data {
 		line := []int{}
-		for x, c := range l.([]string) {
-			n := mustInt(c)
+		for x, n := range l {
 			line = append(line, n)
 			b.cache[n] = coord{x, y}
 		}
@@ -93,21 +91,21 @@ func mustInt(s string) int {
 func readInput(path string) ([]int, []*board) {
 	data := common.ReadTransformedFile(
 		path,
+		common.Range(2, -1,
+			common.SplitWords,
+			common.Block),
 		common.IgnoreBlankLines,
-		common.SplitWords,
 	)
 
 	calls := []int{}
-	boards := []*board{}
-	for _, s := range strings.Split(data[0].([]string)[0], ",") {
+	for _, s := range strings.Split(data[0].(string), ",") {
 		calls = append(calls, mustInt(s))
 	}
 
-	l := 1
-	for l < len(data) {
+	boards := []*board{}
+	for _, d := range data[1:] {
 		b := &board{}
-		boards = append(boards, b.create(data[l:l+5]))
-		l += 5
+		boards = append(boards, b.load(common.AsIntGrid(d.([]interface{}))))
 	}
 
 	return calls, boards

@@ -21,19 +21,20 @@ type command struct {
 	Dist int
 }
 
-func parseLine(i int, in interface{}) (interface{}, error) {
+func parseLine(i int, in interface{}) (string, interface{}, error) {
+	name := "parseLine"
 	l, ok := in.([]string)
 	if !ok {
-		return nil, fmt.Errorf("parseLine expects []string, got %T", l)
+		return name, nil, fmt.Errorf("parseLine expects []string, got %T", l)
 	}
 
 	if len(l) != 2 {
-		return nil, fmt.Errorf("parseLine expects 2 words, got %v in line %d", l, i)
+		return name, nil, fmt.Errorf("parseLine expects 2 words, got %v in line %d", l, i)
 	}
 
 	n, err := strconv.Atoi(l[1])
 	if err != nil {
-		return nil, fmt.Errorf("invalid number %q at line %d", l[1], i)
+		return name, nil, fmt.Errorf("invalid number %q at line %d", l[1], i)
 	}
 
 	var d direction
@@ -45,10 +46,10 @@ func parseLine(i int, in interface{}) (interface{}, error) {
 	case "down":
 		d = dir_down
 	default:
-		return nil, fmt.Errorf("invalid direction %q at line %d", l[0], i)
+		return name, nil, fmt.Errorf("invalid direction %q at line %d", l[0], i)
 	}
 
-	return command{d, n}, nil
+	return name, command{d, n}, nil
 }
 
 func readFile(path string) ([]command, error) {
