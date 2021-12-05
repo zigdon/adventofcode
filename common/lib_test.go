@@ -178,6 +178,12 @@ func TestSplit(t *testing.T) {
 			want: []string{"word ", "another "},
 		},
 		{
+			desc: "substrings",
+			sep:  "/",
+			in:   []string{"first/entry", "//second/"},
+			want: [][]string{{"first", "entry"}, {"second"}},
+		},
+		{
 			desc: "not string",
 			in:   []int{1, 2},
 			sep:  "/",

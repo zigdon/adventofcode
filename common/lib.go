@@ -185,20 +185,35 @@ func IgnoreBlankLines(i int, in interface{}) (string, interface{}, error) {
 
 // Split will split on arbitrary strings, dropping empty segments.
 func Split(sep string) func(i int, in interface{}) (string, interface{}, error) {
-	name := "Split"
+	name := fmt.Sprintf("Split(%q)", sep)
 	return func(i int, in interface{}) (string, interface{}, error) {
-		l, ok := in.(string)
-		if !ok {
+		switch in.(type) {
+		case []string:
+			res := [][]string{}
+			for _, str := range in.([]string) {
+				line := []string{}
+				for _, word := range strings.Split(str, sep) {
+					if len(word) == 0 {
+						continue
+					}
+					line = append(line, word)
+				}
+				res = append(res, line)
+			}
+
+			return name, res, nil
+		case string:
+			res := []string{}
+			for _, word := range strings.Split(in.(string), sep) {
+				if len(word) == 0 {
+					continue
+				}
+				res = append(res, word)
+			}
+			return name, res, nil
+		default:
 			return name, in, nil
 		}
-		res := []string{}
-		for _, s := range strings.Split(l, sep) {
-			if len(s) == 0 {
-				continue
-			}
-			res = append(res, s)
-		}
-		return name, res, nil
 	}
 }
 
