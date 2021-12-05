@@ -146,6 +146,59 @@ func TestIgnoreBlankLines(t *testing.T) {
 	}
 }
 
+func TestSplit(t *testing.T) {
+	tests := []struct {
+		desc string
+		in   interface{}
+		sep  string
+		want interface{}
+	}{
+		{
+			desc: "single word",
+			in:   "one",
+			sep:  "/",
+			want: []string{"one"},
+		},
+		{
+			desc: "many words",
+			in:   "here are/words",
+			sep:  "/",
+			want: []string{"here are", "words"},
+		},
+		{
+			desc: "long separator",
+			in:   "here are words",
+			sep:  " are ",
+			want: []string{"here", "words"},
+		},
+		{
+			desc: "empty bits",
+			sep:  "/",
+			in:   "/word ///another ",
+			want: []string{"word ", "another "},
+		},
+		{
+			desc: "not string",
+			in:   []int{1, 2},
+			sep:  "/",
+			want: []int{1, 2},
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.desc, func(t *testing.T) {
+			f := Split(tc.sep)
+			_, got, err := f(0, tc.in)
+			if err != nil {
+				t.Errorf("unexpected error: %v", err)
+			}
+			if diff := cmp.Diff(tc.want, got); diff != "" {
+				t.Errorf("bad split:\n%s", diff)
+			}
+		})
+	}
+}
+
 func TestSplitWords(t *testing.T) {
 	tests := []struct {
 		desc string
