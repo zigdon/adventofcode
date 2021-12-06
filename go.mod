@@ -1,4 +1,4 @@
-module github.com/zigdon/adventofcode/common
+module github.com/zigdon/adventofcode
 
 go 1.15
 
