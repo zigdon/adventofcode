@@ -251,6 +251,42 @@ func TestSplitWords(t *testing.T) {
 	}
 }
 
+func TestToUpper(t *testing.T) {
+	tests := []struct {
+		desc string
+		in   interface{}
+		want interface{}
+	}{
+		{
+			desc: "single word",
+			in:   "one",
+			want: "ONE",
+		},
+		{
+			desc: "many words",
+			in:   "here are words",
+			want: "HERE ARE WORDS",
+		},
+		{
+			desc: "not string",
+			in:   []int{1, 2},
+			want: []int{1, 2},
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.desc, func(t *testing.T) {
+			_, got, err := ToUpper(0, tc.in)
+			if err != nil {
+				t.Errorf("unexpected error: %v", err)
+			}
+			if diff := cmp.Diff(tc.want, got); diff != "" {
+				t.Errorf("bad words:\n%s", diff)
+			}
+		})
+	}
+}
+
 func TestInts(t *testing.T) {
 	tests := []struct {
 		desc    string

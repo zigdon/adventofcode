@@ -227,6 +227,16 @@ func SplitWords(i int, in interface{}) (string, interface{}, error) {
 	return name, strings.Fields(l), nil
 }
 
+// ToUpper makes all strings upper case
+func ToUpper(i int, in interface{}) (string, interface{}, error) {
+	name := "ToUpper"
+	l, ok := in.(string)
+	if !ok {
+		return name, in, nil
+	}
+	return name, strings.ToUpper(l), nil
+}
+
 // Ints transforms lines to ints
 func Ints(i int, in interface{}) (string, interface{}, error) {
 	name := "Ints"
