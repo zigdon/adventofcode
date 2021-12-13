@@ -66,15 +66,24 @@ func AsIntGrid(in []interface{}) [][]int {
 	return out
 }
 
-func AsStrings(in []interface{}) []string {
+func AsStrings(in interface{}) []string {
 	out := []string{}
-	for _, n := range in {
-		switch n.(type) {
-		case string:
-			out = append(out, fmt.Sprintf("%s", n))
-		default:
-			log.Printf("*** Skipping %q", n)
+	var list []string
+	switch in.(type) {
+	case string:
+		list = append(list, in.(string))
+	case []string:
+		list = in.([]string)
+	case []interface{}:
+		for _, i := range in.([]interface{}) {
+			out = append(out, AsStrings(i)...)
 		}
+		return out
+	default:
+		log.Printf("*** Couldn't make strings out of %#v(%T)", in, in)
+	}
+	for _, s := range list {
+		out = append(out, s)
 	}
 
 	return out
@@ -250,4 +259,14 @@ func Ints(i int, in interface{}) (string, interface{}, error) {
 	}
 
 	return name, n, nil
+}
+
+// MustInt _will_ convert a string into an int, or die trying.
+func MustInt(s string) int {
+	n, err := strconv.Atoi(s)
+	if err != nil {
+		log.Fatalf("cant convert %q to int: %v", s, err)
+	}
+
+	return n
 }
