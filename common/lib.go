@@ -270,3 +270,45 @@ func MustInt(s string) int {
 
 	return n
 }
+
+// StringDiff returns 2 lines making it easier to find changes between 2 strings
+func StringDiff(s1, s2 string) string {
+	l1, l2 := len(s1), len(s2)
+	out := []string{"", ""}
+	if l1 == l2 {
+		return strings.Join([]string{s1, s2}, "\n")
+	}
+	flipped := false
+	if l1 < l2 {
+		l1, l2 = l2, l1
+		s1, s2 = s2, s1
+		flipped = true
+	}
+	var prefix, suffix int
+	for p := range s1 {
+		if p >= l2 || s1[p] != s2[p] {
+			prefix = p
+			break
+		}
+	}
+	for s := range s1 {
+		suffix = s
+		if l1-s <= prefix {
+			break
+		}
+		if s1[l1-s-1] != s2[l2-s-1] {
+			break
+		}
+	}
+
+	diff := l1 - prefix - suffix
+	tmpl := fmt.Sprintf("%%s %%%ds %%s", diff)
+	out[0] = fmt.Sprintf(tmpl, s1[:prefix], s1[prefix:l1-suffix], s1[l1-suffix:])
+	out[1] = fmt.Sprintf(tmpl, s2[:prefix], s2[prefix:l2-suffix], s2[l2-suffix:])
+
+	if flipped {
+		out[0], out[1] = out[1], out[0]
+	}
+
+	return strings.Join(out, "\n")
+}
