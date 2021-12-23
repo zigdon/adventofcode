@@ -188,8 +188,9 @@ func Test24(t *testing.T) {
 
 	seen := make(map[coord]bool)
 	start := s.Orientation
-	s.try24(func(s *scanner, _ coord) {
+	s.try24(func(s *scanner) bool {
 		seen[s.Orientation] = true
+		return false
 	})
 
 	if len(seen) != 24 {
@@ -200,10 +201,23 @@ func Test24(t *testing.T) {
 	}
 }
 
+func TestTurnTo(t *testing.T) {
+	tests := coords{{2, 0, 1}, {2, 1, 0}, {-2, -1, 0}, {0, 1, -2}}
+	for _, tc := range tests {
+		t.Run(tc.String(), func(t *testing.T) {
+			s := newScanner(0, []string{})
+			s.turnTo(tc)
+			if !s.Orientation.eq(tc) {
+				t.Errorf("failed to turn to %s: got %s", tc, s.Orientation)
+			}
+		})
+	}
+}
+
 func TestDeltas(t *testing.T) {
 	tests := []struct {
 		in   *scanner
-		want map[coord]coord
+		want map[coord]pair
 	}{
 		{
 			in: newScanner(0, []string{
@@ -211,13 +225,10 @@ func TestDeltas(t *testing.T) {
 				"2,2,2",
 				"-1,2,0",
 			}),
-			want: map[coord]coord{
-				{-3, 0, -2}:  {-1, 2, 0},
-				{1, 1, 1}:    {2, 2, 2},
-				{-2, 1, -1}:  {-1, 2, 0},
-				{-1, -1, -1}: {1, 1, 1},
-				{2, -1, 1}:   {1, 1, 1},
-				{3, 0, 2}:    {2, 2, 2},
+			want: map[coord]pair{
+				{-2, 1, -1}: {coord{1, 1, 1}, coord{-1, 2, 0}},
+				{1, 1, 1}:   {coord{1, 1, 1}, coord{2, 2, 2}},
+				{3, 0, 2}:   {coord{-1, 2, 0}, coord{2, 2, 2}},
 			},
 		},
 	}
@@ -238,7 +249,6 @@ func TestBestMatch(t *testing.T) {
 		a, b        *scanner
 		setOrigin   []coord
 		wantMatches []coord
-		wantDir     coord
 		wantOrigin  coord
 	}{
 		{
@@ -294,15 +304,12 @@ func TestBestMatch(t *testing.T) {
 					}
 				}
 			}
-			cnt, ori, shift, matches := tc.a.align(tc.b)
-			if cnt != len(tc.wantMatches) {
-				t.Errorf("bad count: want %d, got %d", len(tc.wantMatches), cnt)
+			matches := tc.a.align(tc.b, tc.req)
+			if len(matches) != len(tc.wantMatches) {
+				t.Errorf("bad count: want %d, got %d", len(tc.wantMatches), len(matches))
 			}
-			if !tc.wantDir.isEmpty() && !ori.eq(tc.wantDir) {
-				t.Errorf("bad orientation: want %s, got %s", tc.wantDir, ori)
-			}
-			if !tc.wantOrigin.isEmpty() && !shift.eq(tc.wantOrigin) {
-				t.Errorf("bad origin: want %s, got %s", tc.wantOrigin, shift)
+			if !tc.wantOrigin.isEmpty() && !tc.b.Origin.eq(tc.wantOrigin) {
+				t.Errorf("bad origin: want %s, got %s", tc.wantOrigin, tc.b.Origin)
 			}
 			want := make(map[coord]bool)
 			got := make(map[coord]bool)

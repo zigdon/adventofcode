@@ -4,10 +4,26 @@ import (
 	"fmt"
 	"log"
 	"math"
+	"sort"
 	"strings"
 
 	"github.com/zigdon/adventofcode/common"
 )
+
+type coords []coord
+
+func (bs coords) less(i, j int) bool {
+	return bs[i].lt(bs[j])
+}
+
+func (bs coords) String() string {
+	out := []string{}
+	for _, b := range bs {
+		out = append(out, b.String())
+	}
+
+	return strings.Join(out, "\n")
+}
 
 type coord struct {
 	X, Y, Z int
@@ -25,12 +41,32 @@ func (c coord) add(b coord) coord {
 	return coord{c.X + b.X, c.Y + b.Y, c.Z + b.Z}
 }
 
+func (c coord) mod(n int) coord {
+	return coord{c.X % n, c.Y % n, c.Z % n}
+}
+
 func (c coord) eq(b coord) bool {
 	return c.X == b.X && c.Y == b.Y && c.Z == b.Z
 }
 
 func (c coord) lt(b coord) bool {
-	return c.X < b.X || c.Y < b.Y || c.Z < b.Z
+	if c.X < b.X {
+		return true
+	} else if c.X > b.X {
+		return false
+	}
+	if c.Y < b.Y {
+		return true
+	} else if c.Y > b.Y {
+		return false
+	}
+	if c.Z < b.Z {
+		return true
+	} else if c.Z > b.Z {
+		return false
+	}
+
+	return false
 }
 
 func (c coord) max(b coord) coord {
@@ -72,7 +108,15 @@ func (c coord) distance(d coord) float64 {
 			math.Pow(float64(c.Z-d.Z), 2))
 }
 
+func (c coord) manhattan(d coord) int {
+	return int(
+		math.Abs(float64(c.X-d.X)) +
+			math.Abs(float64(c.Y-d.Y)) +
+			math.Abs(float64(c.Z-d.Z)))
+}
+
 func (c coord) turn(r coord) coord {
+	r = r.mod(4)
 	nc := coord{c.X, c.Y, c.Z}
 	switch r.X {
 	case 1:
@@ -103,11 +147,11 @@ func (c coord) turn(r coord) coord {
 }
 
 type pair struct {
-	a, b coord
+	A, B coord
 }
 
 func (p pair) String() string {
-	return fmt.Sprintf("[%s, %s]", p.a, p.b)
+	return fmt.Sprintf("[%s, %s]", p.A, p.B)
 }
 
 type scanner struct {
@@ -150,10 +194,21 @@ func (s *scanner) String() string {
 		out = append(out, "  Deltas:")
 	}
 	for c, t := range s.Deltas {
-		out = append(out, fmt.Sprintf("    %s (%s, %s)", c, t.a, t.b))
+		out = append(out, fmt.Sprintf("    %s (%s, %s)", c, t.A, t.B))
 	}
 
 	return strings.Join(out, "\n")
+}
+
+func (s *scanner) listBeacons() string {
+	out := coords{}
+	for k := range s.Beacons {
+		out = append(out, k)
+	}
+
+	sort.Slice(out, out.less)
+
+	return out.String()
 }
 
 func (s *scanner) shift(c coord) {
@@ -165,7 +220,7 @@ func (s *scanner) shift(c coord) {
 
 	var nd = make(map[coord]pair)
 	for k, v := range s.Deltas {
-		nd[k] = pair{v.a.add(c), v.b.add(c)}
+		nd[k] = pair{v.A.add(c), v.B.add(c)}
 	}
 	s.Deltas = nd
 
@@ -194,8 +249,8 @@ func (s *scanner) makeDeltas() {
 				continue
 			}
 			delta := b.sub(a)
-			if _, ok := s.Deltas[delta]; ok {
-				log.Printf("collision at %s", delta)
+			if p, ok := s.Deltas[delta]; ok {
+				log.Printf("collision at %s: %s and %s", delta, p, pair{a, b})
 			}
 			s.Deltas[delta] = pair{a, b}
 		}
@@ -227,9 +282,8 @@ func (s *scanner) add(b string) {
 }
 
 // run f in all 24 possible orientations, ensuring s ends up at the same
-// orientation as it started.
-func (s *scanner) try24(f func(*scanner, coord)) {
-	var transformation coord
+// orientation as it started. If f returns true, stop trying.
+func (s *scanner) try24(f func(*scanner) bool) {
 	for _, r := range []coord{
 		{0, 0, 0},
 		{1, 0, 0}, {1, 0, 0}, {1, 0, 0},
@@ -240,36 +294,37 @@ func (s *scanner) try24(f func(*scanner, coord)) {
 		{1, 2, 0}, {1, 0, 0}, {1, 0, 0}, {1, 0, 0},
 	} {
 		s.turn(r)
-		transformation = transformation.add(r)
-		f(s, transformation)
+		if f(s) {
+			return
+		}
 	}
 
 	s.turn(coord{2, 0, 1})
 }
 
-func (s *scanner) align(sb *scanner) (int, coord, coord, []coord) {
+func (s *scanner) align(sb *scanner, req int) []coord {
 	var bestMatch int
-	var bestOri, bestShift, turns coord
+	var bestShift, bestOrientation coord
 	matches := make(map[coord]bool)
 
-	matchFunc := func(sb *scanner, rots coord) {
-		// Line up pairs of beacons in the original with a pair from the overlay
+	// Line up pairs of beacons in the original with a pair from the overlay
+	matchFunc := func(sb *scanner) bool {
 		found := make(map[pair]pair)
 		count := make(map[coord]bool)
+
 		// find matching deltas, add the two ends as possible matches
-		for c, over := range sb.Deltas {
-			if f, ok := s.Deltas[c]; ok {
-				found[f] = over
-				count[f.a] = true
-				count[f.b] = true
+		for delta, over := range sb.Deltas {
+			if ref, ok := s.Deltas[delta]; ok {
+				found[ref] = over
+				count[ref.A] = true
+				count[ref.B] = true
 			}
 		}
 
 		if len(count) > bestMatch {
+			bestOrientation = sb.Orientation
 			bestShift = coord{0, 0, 0}
 			bestMatch = len(count)
-			bestOri = sb.Orientation
-			turns = rots
 			for k := range matches {
 				delete(matches, k)
 			}
@@ -277,34 +332,136 @@ func (s *scanner) align(sb *scanner) (int, coord, coord, []coord) {
 			// each found pair shows 4 possible shifts, but we know the
 			// orientation is the same, so the leftmost of each pair matches.
 			for ref, over := range found {
-				if ref.b.lt(ref.a) {
-					ref = pair{ref.b, ref.a}
+				if ref.B.lt(ref.A) {
+					ref = pair{ref.B, ref.A}
 				}
-				if over.b.lt(over.a) {
-					over = pair{over.b, over.a}
+				if over.B.lt(over.A) {
+					over = pair{over.B, over.A}
 				}
 				if bestShift.isEmpty() {
-					bestShift = ref.a.sub(over.a)
-					log.Printf("setting bestShift: %s", bestShift)
+					bestShift = ref.A.sub(over.A)
 				}
-				matches[ref.a] = true
-				matches[ref.b] = true
+				matches[ref.A] = true
+				matches[ref.B] = true
+			}
+		}
+		return false // try all 24
+	}
+
+	sb.try24(matchFunc)
+
+	res := []coord{}
+	if bestMatch >= req {
+		// log.Printf("adjusting #%d:\n%s", sb.ID, sb.listBeacons())
+		// try24 returns the scanner to its origin, so turn it until it's at bestOrientation
+		sb.turnTo(bestOrientation)
+		// log.Printf("turned #%d %v:\n%s", sb.ID, turns, sb.listBeacons())
+		if sb.Origin.isEmpty() && sb.ID != 0 {
+			sb.shift(bestShift)
+			// log.Printf("shifted #%d %v:\n%s", sb.ID, bestShift, sb.listBeacons())
+		}
+
+		for k := range matches {
+			res = append(res, k)
+		}
+	}
+	return res
+}
+
+func (s *scanner) turnTo(r coord) {
+	s.try24(func(sb *scanner) bool {
+		if !sb.Orientation.eq(r) {
+			return false
+		}
+		return true
+	})
+}
+
+func (s *scanner) merge(sb *scanner) {
+	nb := coords{}
+	for c := range sb.Beacons {
+		if !s.Beacons[c] {
+			nb = append(nb, c)
+			s.Beacons[c] = true
+		}
+	}
+	if len(nb) > 0 {
+		sort.Slice(nb, nb.less)
+		// log.Printf("Adding from #%d to #%d:\n%s", sb.ID, s.ID, nb)
+	}
+
+	s.makeDeltas()
+}
+
+func turnTo(o coord) coord {
+	var res coord
+	switch {
+	case o.X == -2:
+		res.Z += 2
+	case o.Y == 2:
+		res.Z += 1
+	case o.Y == -2:
+		res.Z += 3
+	case o.Z == 2:
+		res.Y += 1
+	case o.Z == -2:
+		res.Y += 3
+	}
+	switch {
+	case o.X == 1:
+		res.Z += 2
+	case o.Y == 2:
+		res.Z += 1
+	case o.Y == -2:
+		res.Z += 3
+	case o.Z == 2:
+		res.Y += 1
+	case o.Z == -2:
+		res.Y += 3
+	}
+
+	return res
+}
+
+func solve(ss []*scanner) (*scanner, bool) {
+	var solved = map[int]bool{ss[0].ID: true}
+	cont := true
+
+	for cont {
+		cont = false
+		for _, a := range ss {
+			if !solved[a.ID] {
+				continue
+			}
+			for _, b := range ss {
+				if solved[b.ID] {
+					continue
+				}
+				got := a.align(b, 12)
+				// log.Printf("Trying to align %d to %d: got %d", b.ID, a.ID, len(got))
+				if len(got) < 12 {
+					continue
+				}
+				log.Printf("solved #%d, shifted %s!", b.ID, b.Origin)
+				solved[b.ID] = true
+				cont = true
+				break
 			}
 		}
 	}
 
-	sb.try24(matchFunc)
-	sb.turn(turns)
-	if sb.Origin.isEmpty() && sb.ID != 0 {
-		sb.shift(bestShift)
+	good := true
+	for _, s := range ss {
+		log.Printf("%d: %v (%s)", s.ID, solved[s.ID], s.Origin)
+		if !solved[s.ID] {
+			good = false
+		}
+		if s.ID != ss[0].ID {
+			ss[0].merge(s)
+		}
 	}
 
-	res := []coord{}
-	for k := range matches {
-		res = append(res, k)
-	}
-
-	return bestMatch, bestOri, bestShift, res
+	return ss[0], good
 }
 
 func readFile(path string) []*scanner {
@@ -331,5 +488,21 @@ func readFile(path string) []*scanner {
 }
 
 func main() {
-	fmt.Println("vim-go")
+	data := readFile("input.txt")
+	res, ok := solve(data)
+	if !ok {
+		log.Printf("failed to solve!")
+	}
+	log.Printf("got %d beacons", len(res.Beacons))
+
+	max := 0
+	for _, a := range data {
+		for _, b := range data {
+			d := a.Origin.manhattan(b.Origin)
+			if d > max {
+				log.Printf("#%d and #%d are %d apart (%s - %s)", a.ID, b.ID, d, a.Origin, b.Origin)
+				max = d
+			}
+		}
+	}
 }
