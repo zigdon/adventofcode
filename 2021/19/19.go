@@ -17,16 +17,20 @@ func (c coord) String() string {
 	return fmt.Sprintf("(%d,%d,%d)", c.X, c.Y, c.Z)
 }
 
-func (c coord) eq(b coord) bool {
-	return c.X == b.X && c.Y == b.Y && c.Z == b.Z
-}
-
 func (c coord) sub(b coord) coord {
 	return coord{c.X - b.X, c.Y - b.Y, c.Z - b.Z}
 }
 
 func (c coord) add(b coord) coord {
 	return coord{c.X + b.X, c.Y + b.Y, c.Z + b.Z}
+}
+
+func (c coord) eq(b coord) bool {
+	return c.X == b.X && c.Y == b.Y && c.Z == b.Z
+}
+
+func (c coord) lt(b coord) bool {
+	return c.X < b.X || c.Y < b.Y || c.Z < b.Z
 }
 
 func (c coord) max(b coord) coord {
@@ -68,9 +72,9 @@ func (c coord) distance(d coord) float64 {
 			math.Pow(float64(c.Z-d.Z), 2))
 }
 
-func (c coord) turn(x, y, z int) coord {
+func (c coord) turn(r coord) coord {
 	nc := coord{c.X, c.Y, c.Z}
-	switch x {
+	switch r.X {
 	case 1:
 		nc.Y, nc.Z = nc.Z, -nc.Y
 	case 2:
@@ -78,7 +82,7 @@ func (c coord) turn(x, y, z int) coord {
 	case 3:
 		nc.Y, nc.Z = -nc.Z, nc.Y
 	}
-	switch y {
+	switch r.Y {
 	case 1:
 		nc.X, nc.Z = nc.Z, -nc.X
 	case 2:
@@ -86,7 +90,7 @@ func (c coord) turn(x, y, z int) coord {
 	case 3:
 		nc.X, nc.Z = -nc.Z, nc.X
 	}
-	switch z {
+	switch r.Z {
 	case 1:
 		nc.X, nc.Y = nc.Y, -nc.X
 	case 2:
@@ -100,6 +104,10 @@ func (c coord) turn(x, y, z int) coord {
 
 type pair struct {
 	a, b coord
+}
+
+func (p pair) String() string {
+	return fmt.Sprintf("[%s, %s]", p.a, p.b)
 }
 
 type scanner struct {
@@ -148,6 +156,24 @@ func (s *scanner) String() string {
 	return strings.Join(out, "\n")
 }
 
+func (s *scanner) shift(c coord) {
+	var nb = make(map[coord]bool)
+	for k := range s.Beacons {
+		nb[k.add(c)] = true
+	}
+	s.Beacons = nb
+
+	var nd = make(map[coord]pair)
+	for k, v := range s.Deltas {
+		nd[k] = pair{v.a.add(c), v.b.add(c)}
+	}
+	s.Deltas = nd
+
+	s.Min = s.Min.add(c)
+	s.Max = s.Max.add(c)
+	s.Origin = s.Origin.add(c)
+}
+
 func (s *scanner) makeDeltas() {
 	// calculate the deltas between all the beacons
 
@@ -162,9 +188,11 @@ func (s *scanner) makeDeltas() {
 			if i == j {
 				continue
 			}
-
 			a := bs[i]
 			b := bs[j]
+			if b.distance(coord{0, 0, 0}) < a.distance(coord{0, 0, 0}) {
+				continue
+			}
 			delta := b.sub(a)
 			if _, ok := s.Deltas[delta]; ok {
 				log.Printf("collision at %s", delta)
@@ -174,12 +202,12 @@ func (s *scanner) makeDeltas() {
 	}
 }
 
-func (s *scanner) turn(x, y, z int) {
-	s.Orientation = s.Orientation.turn(x, y, z)
+func (s *scanner) turn(r coord) {
+	s.Orientation = s.Orientation.turn(r)
 
 	nb := make(map[coord]bool)
 	for b := range s.Beacons {
-		nb[b.turn(x, y, z)] = true
+		nb[b.turn(r)] = true
 	}
 	s.Beacons = nb
 
@@ -200,7 +228,8 @@ func (s *scanner) add(b string) {
 
 // run f in all 24 possible orientations, ensuring s ends up at the same
 // orientation as it started.
-func (s *scanner) try24(f func(*scanner)) {
+func (s *scanner) try24(f func(*scanner, coord)) {
+	var transformation coord
 	for _, r := range []coord{
 		{0, 0, 0},
 		{1, 0, 0}, {1, 0, 0}, {1, 0, 0},
@@ -210,55 +239,65 @@ func (s *scanner) try24(f func(*scanner)) {
 		{1, 2, 1}, {1, 0, 0}, {1, 0, 0}, {1, 0, 0},
 		{1, 2, 0}, {1, 0, 0}, {1, 0, 0}, {1, 0, 0},
 	} {
-		s.turn(r.X, r.Y, r.Z)
-		f(s)
+		s.turn(r)
+		transformation = transformation.add(r)
+		f(s, transformation)
 	}
 
-	s.turn(2, 0, 1)
+	s.turn(coord{2, 0, 1})
 }
 
 func (s *scanner) align(sb *scanner) (int, coord, coord, []coord) {
 	var bestMatch int
-	var bestOri, bestShift coord
-	matches := make(map[coord]coord)
+	var bestOri, bestShift, turns coord
+	matches := make(map[coord]bool)
 
-	matchFunc := func(sb *scanner) {
-		found := make(map[coord]pair)
-		for c, orig := range sb.Deltas {
+	matchFunc := func(sb *scanner, rots coord) {
+		// Line up pairs of beacons in the original with a pair from the overlay
+		found := make(map[pair]pair)
+		count := make(map[coord]bool)
+		// find matching deltas, add the two ends as possible matches
+		for c, over := range sb.Deltas {
 			if f, ok := s.Deltas[c]; ok {
-				found[f.a] = pair{s.Deltas[c].a, orig.a}
-				found[f.b] = pair{s.Deltas[c].b, orig.b}
+				found[f] = over
+				count[f.a] = true
+				count[f.b] = true
 			}
 		}
 
-		if len(found) > bestMatch {
-			bestMatch = len(found)
+		if len(count) > bestMatch {
+			bestShift = coord{0, 0, 0}
+			bestMatch = len(count)
 			bestOri = sb.Orientation
+			turns = rots
 			for k := range matches {
 				delete(matches, k)
 			}
 
-			// found shows delta
-			for _, v := range found {
-				if bestShift.isEmpty() {
-					bestShift = v.a.sub(v.b).add(s.Origin)
-					if sb.Origin.isEmpty() && sb.ID != 0 {
-						sb.Origin = bestShift
-					} else if !sb.Origin.eq(bestShift) {
-						log.Fatalf("moving origin of %d from %s to %s", sb.ID, sb.Origin, bestShift)
-					}
-					log.Printf("shift of %s relative to %s -> %s", v.a.sub(v.b), s.Origin, sb.Origin)
-				} else {
-					if bestShift != v.a.sub(v.b).add(s.Origin) {
-						log.Fatalf("inconsistent shifting: both %s and %s", bestShift, v.a.sub(v.b))
-					}
+			// each found pair shows 4 possible shifts, but we know the
+			// orientation is the same, so the leftmost of each pair matches.
+			for ref, over := range found {
+				if ref.b.lt(ref.a) {
+					ref = pair{ref.b, ref.a}
 				}
-				matches[v.b.add(sb.Origin)] = v.a.add(s.Origin)
+				if over.b.lt(over.a) {
+					over = pair{over.b, over.a}
+				}
+				if bestShift.isEmpty() {
+					bestShift = ref.a.sub(over.a)
+					log.Printf("setting bestShift: %s", bestShift)
+				}
+				matches[ref.a] = true
+				matches[ref.b] = true
 			}
 		}
 	}
 
 	sb.try24(matchFunc)
+	sb.turn(turns)
+	if sb.Origin.isEmpty() && sb.ID != 0 {
+		sb.shift(bestShift)
+	}
 
 	res := []coord{}
 	for k := range matches {

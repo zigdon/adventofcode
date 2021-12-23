@@ -104,7 +104,7 @@ func TestRotateCoord(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(fmt.Sprintf("%d/%d/%d", tc.x, tc.y, tc.z), func(t *testing.T) {
 			c := coord{2, 3, 4}
-			got := c.turn(tc.x, tc.y, tc.z)
+			got := c.turn(coord{tc.x, tc.y, tc.z})
 			if tc.want.X != got.X || tc.want.Y != got.Y || tc.want.Z != got.Z {
 				t.Errorf("bad rotation: want %s, got %s", tc.want, got)
 			}
@@ -165,7 +165,7 @@ func TestRotate(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(fmt.Sprintf("%d/%d/%d", tc.x, tc.y, tc.z), func(t *testing.T) {
 			s := testScanner()
-			s.turn(tc.x, tc.y, tc.z)
+			s.turn(coord{tc.x, tc.y, tc.z})
 			missing := false
 			for _, c := range tc.want {
 				if !s.Beacons[c] {
@@ -188,7 +188,7 @@ func Test24(t *testing.T) {
 
 	seen := make(map[coord]bool)
 	start := s.Orientation
-	s.try24(func(s *scanner) {
+	s.try24(func(s *scanner, _ coord) {
 		seen[s.Orientation] = true
 	})
 
@@ -289,7 +289,7 @@ func TestBestMatch(t *testing.T) {
 			if len(tc.setOrigin) > 0 {
 				for i, o := range tc.setOrigin {
 					if !data[i].Origin.eq(o) {
-						data[i].Origin = o
+						data[i].shift(o)
 						t.Logf("setting origin of %d to %s", i, o)
 					}
 				}
