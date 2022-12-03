@@ -1,4 +1,5 @@
 !*
 debug.test
 *.swp
+*.swo
 input.txt
