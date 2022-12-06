@@ -8,35 +8,29 @@ import (
 	"github.com/zigdon/adventofcode/common"
 )
 
-func one(data []int) (int, error) {
-  return 0, nil
+func one(data []int) int {
+	return 0
 }
 
-func two(data []int) (int, error) {
-  return 0, nil
+func two(data []int) int {
+	return 0
 }
 
 func readFile(path string) ([]int, error) {
-  res := common.ReadTransformedFile(path)
+	res := common.ReadTransformedFile(path, common.IgnoreBlankLines)
 
-  return common.AsInts(res), nil
+	return common.AsInts(res), nil
 }
 
 func main() {
-  data, err := readFile(os.Args[1])
-  if err != nil {
-    log.Fatalf("%v", err)
-  }
+	data, err := readFile(os.Args[1])
+	if err != nil {
+		log.Fatalf("%v", err)
+	}
 
-  res, err := one(data)
-  if err != nil {
-    log.Fatalf("%v", err)
-  }
-  fmt.Printf("%v\n", res)
+	res := one(data)
+	fmt.Printf("%v\n", res)
 
-  res, err = two(data)
-  if err != nil {
-    log.Fatalf("%v", err)
-  }
-  fmt.Printf("%v\n", res)
+	res = two(data)
+	fmt.Printf("%v\n", res)
 }
