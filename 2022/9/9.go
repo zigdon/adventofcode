@@ -105,29 +105,29 @@ func (r *Rope) Nudge(dx, dy int) {
 	if r.Head.y < r.Min.y {
 		r.Min.y = r.Head.y
 	}
-	log.Printf("head -> %s", r.Head)
+	// log.Printf("head -> %s", r.Head)
 	diff := r.Head.Sub(r.Tail)
 	if diff.Mag() <= 1 {
 		return
 	}
 	var mx, my int
-	if diff.x > 1 {
+	if diff.x > 0 {
 		mx = 1
-	} else if diff.x < -1 {
+	} else if diff.x < 0 {
 		mx = -1
 	}
-	if diff.y > 1 {
+	if diff.y > 0 {
 		my = 1
-	} else if diff.y < -1 {
+	} else if diff.y < 0 {
 		my = -1
 	}
-	r.Tail.Add(Point{mx, my})
-	log.Printf("tail (%d, %d) -> %s", mx, my, r.Tail)
+	r.Tail = r.Tail.Add(Point{mx, my})
+	// log.Printf("tail (%d, %d) -> %s", mx, my, r.Tail)
 	r.Seen[r.Tail] = true
 }
 
 func (r *Rope) Move(i Inst) {
-	log.Print(i.String())
+	// log.Print(i.String())
 	for n := 0; n < i.Dist; n++ {
 		r.Nudge(i.Dx, i.Dy)
 	}
@@ -159,7 +159,7 @@ func one(inst []Inst) int {
 	r := NewRope()
 	for _, i := range inst {
 		r.Move(i)
-		log.Printf("\n%s\n", r)
+		// log.Printf("\n%s\n", r)
 	}
 	res := 0
 	for _, v := range r.Seen {

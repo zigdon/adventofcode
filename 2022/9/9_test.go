@@ -28,6 +28,65 @@ func TestReadFile(t *testing.T) {
 	}
 }
 
+func TestNudge(t *testing.T) {
+	tests := []struct {
+		desc   string
+		h      Point
+		dx, dy int
+		want   Point
+	}{
+		{
+			desc: "overlap -> no move",
+			dx:   1,
+		},
+		{
+			desc: "return to overlap",
+			h:    Point{1, 0},
+			dx:   -1,
+		},
+		{
+			desc: "drag right",
+			h:    Point{1, 0},
+			dx:   1,
+			want: Point{1, 0},
+		},
+		{
+			desc: "drag up",
+			h:    Point{0, 1},
+			dy:   1,
+			want: Point{0, 1},
+		},
+		{
+			desc: "diag -> no move",
+			h:    Point{1, 0},
+			dx:   -1,
+			dy:   1,
+		},
+		{
+			desc: "to diag -> no move",
+			h:    Point{1, 0},
+			dy:   1,
+		},
+		{
+			desc: "diag -> up",
+			h:    Point{1, 1},
+			dy:   1,
+			want: Point{1, 1},
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.desc, func(t *testing.T) {
+			r := NewRope()
+			r.Head = tc.h
+			r.Nudge(tc.dx, tc.dy)
+			if r.Tail.x != tc.want.x || r.Tail.y != tc.want.y {
+				t.Errorf("Bad tail: want %s, got %s", tc.want, r.Tail)
+			}
+		})
+	}
+}
+
 func TestOne(t *testing.T) {
 	i, err := readFile("sample.txt")
 	if err != nil {
