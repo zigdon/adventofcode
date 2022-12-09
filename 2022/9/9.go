@@ -13,20 +13,29 @@ type Point struct {
 	x, y int
 }
 
-func (p Point) String() string {
+func (p *Point) String() string {
 	return fmt.Sprintf("(%d,%d)", p.x, p.y)
 }
 
-func (p Point) Eq(p2 Point) bool {
+func (p *Point) Set(p2 *Point) {
+	p.x = p2.x
+	p.y = p2.y
+}
+func (p *Point) Move(p2 *Point) {
+    log.Printf("p1=%v, p2=%v", p, p2)
+	p.x += p2.x
+	p.y += p2.y
+}
+func (p *Point) Eq(p2 *Point) bool {
 	return p.x == p2.x && p.y == p2.y
 }
-func (p Point) Sub(p2 Point) Point {
-	return Point{p.x - p2.x, p.y - p2.y}
+func (p *Point) Sub(p2 *Point) *Point {
+	return &Point{p.x - p2.x, p.y - p2.y}
 }
-func (p Point) Add(p2 Point) Point {
-	return Point{p.x + p2.x, p.y + p2.y}
+func (p *Point) Add(p2 *Point) *Point {
+	return &Point{p.x + p2.x, p.y + p2.y}
 }
-func (p Point) Mag() int {
+func (p *Point) Mag() int {
 	x := p.x
 	if x < 0 {
 		x = -x
@@ -42,20 +51,33 @@ func (p Point) Mag() int {
 }
 
 type Rope struct {
-	Head, Tail, Max, Min Point
-	Seen                 map[Point]bool
+	Knots    []*Point
+	Max, Min *Point
+	Seen     map[*Point]bool
 }
 
-func NewRope() *Rope {
-	return &Rope{
-		Head: Point{},
-		Tail: Point{},
-		Max:  Point{},
-		Min:  Point{},
-		Seen: map[Point]bool{
-			Point{}: true,
+func (r *Rope) Tail() *Point {
+    log.Printf("tail = %v", r.Knots[len(r.Knots)-1])
+	return r.Knots[len(r.Knots)-1]
+}
+
+func (r *Rope) Head() *Point {
+	return r.Knots[0]
+}
+
+func NewRope(knots int) *Rope {
+	r := &Rope{
+		Max:   &Point{},
+		Min:   &Point{},
+		Seen: map[*Point]bool{
+			&Point{}: true,
 		},
 	}
+    for i:=0; i< knots; i++ {
+      r.Knots = append(r.Knots, &Point{})
+    }
+
+    return r
 }
 
 func (r *Rope) String() string {
@@ -68,12 +90,12 @@ func (r *Rope) String() string {
 	for y := r.Max.y; y >= r.Min.y; y-- {
 		l = fmt.Sprintf("%3d: ", y)
 		for x := r.Min.x; x <= r.Max.x; x++ {
-			p := Point{x, y}
+			p := &Point{x, y}
 			var c string
 			switch {
-			case r.Head.Eq(p):
+			case r.Head().Eq(p):
 				c = "H"
-			case r.Tail.Eq(p):
+			case r.Tail().Eq(p):
 				c = "T"
 			case x == 0 && y == 0:
 				c = "s"
@@ -91,22 +113,21 @@ func (r *Rope) String() string {
 }
 
 func (r *Rope) Nudge(dx, dy int) {
-	r.Head.x += dx
-	r.Head.y += dy
-	if r.Head.x > r.Max.x {
-		r.Max.x = r.Head.x
+	r.Head().Move(&Point{dx, dy})
+	if r.Head().x > r.Max.x {
+		r.Max.x = r.Head().x
 	}
-	if r.Head.y > r.Max.y {
-		r.Max.y = r.Head.y
+	if r.Head().y > r.Max.y {
+		r.Max.y = r.Head().y
 	}
-	if r.Head.x < r.Min.x {
-		r.Min.x = r.Head.x
+	if r.Head().x < r.Min.x {
+		r.Min.x = r.Head().x
 	}
-	if r.Head.y < r.Min.y {
-		r.Min.y = r.Head.y
+	if r.Head().y < r.Min.y {
+		r.Min.y = r.Head().y
 	}
-	// log.Printf("head -> %s", r.Head)
-	diff := r.Head.Sub(r.Tail)
+	// log.Printf("head -> %s", r.Head())
+	diff := r.Head().Sub(r.Tail())
 	if diff.Mag() <= 1 {
 		return
 	}
@@ -121,9 +142,9 @@ func (r *Rope) Nudge(dx, dy int) {
 	} else if diff.y < 0 {
 		my = -1
 	}
-	r.Tail = r.Tail.Add(Point{mx, my})
-	// log.Printf("tail (%d, %d) -> %s", mx, my, r.Tail)
-	r.Seen[r.Tail] = true
+	r.Tail().Move(&Point{mx, my})
+	// log.Printf("tail (%d, %d) -> %s", mx, my, r.Tail())
+	r.Seen[r.Tail()] = true
 }
 
 func (r *Rope) Move(i Inst) {
@@ -156,7 +177,7 @@ func NewInst(d string, q int) Inst {
 }
 
 func one(inst []Inst) int {
-	r := NewRope()
+	r := NewRope(2)
 	for _, i := range inst {
 		r.Move(i)
 		// log.Printf("\n%s\n", r)
