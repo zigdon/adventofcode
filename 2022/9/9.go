@@ -100,7 +100,13 @@ func (r *Rope) String() string {
 			c := "."
 			for i, k := range r.Knots {
 				if k.Eq(p) {
-					c = fmt.Sprintf("%d", i)
+                    if i == 0 {
+                      c = "H"
+                    } else if i == len(r.Knots)-1 {
+                      c = "T"
+                    } else {
+                      c = fmt.Sprintf("%d", i)
+                    }
 					break
 				}
 			}
@@ -210,7 +216,7 @@ func one(inst []Inst) int {
 func two(inst []Inst) int {
 	r := NewRope(10)
 	for _, i := range inst {
-		r.Move(i, true)
+		r.Move(i, false)
 	}
 	res := 0
 	for _, v := range r.Seen {

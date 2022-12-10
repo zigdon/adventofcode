@@ -119,3 +119,17 @@ func TestTwo(t *testing.T) {
 		t.Errorf(diff)
 	}
 }
+
+func TestTwoB(t *testing.T) {
+	i, err := readFile("sample2.txt")
+	if err != nil {
+		t.Errorf("%v", err)
+	}
+
+	got := two(i)
+	want := 36
+
+	if diff := cmp.Diff(want, got); diff != "" {
+		t.Errorf(diff)
+	}
+}
