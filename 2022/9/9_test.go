@@ -78,10 +78,13 @@ func TestNudge(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.desc, func(t *testing.T) {
 			r := NewRope(2)
-            if tc.h != nil {
-              r.Head().Set(tc.h)
-            }
-			r.Nudge(tc.dx, tc.dy)
+			if tc.want == nil {
+				tc.want = &Point{}
+			}
+			if tc.h != nil {
+				r.Head().Set(tc.h)
+			}
+			r.Nudge(0, tc.dx, tc.dy)
 			if r.Tail().x != tc.want.x || r.Tail().y != tc.want.y {
 				t.Errorf("Bad tail: want %s, got %s", tc.want, r.Tail())
 			}
@@ -110,7 +113,7 @@ func TestTwo(t *testing.T) {
 	}
 
 	got := two(i)
-	want := 0
+	want := 1
 
 	if diff := cmp.Diff(want, got); diff != "" {
 		t.Errorf(diff)

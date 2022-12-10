@@ -22,9 +22,10 @@ func (p *Point) Set(p2 *Point) {
 	p.y = p2.y
 }
 func (p *Point) Move(p2 *Point) {
-    log.Printf("p1=%v, p2=%v", p, p2)
+	// log.Printf("Move p1=%v + p2=%v", p, p2)
 	p.x += p2.x
 	p.y += p2.y
+	// log.Printf("-> %v", p)
 }
 func (p *Point) Eq(p2 *Point) bool {
 	return p.x == p2.x && p.y == p2.y
@@ -53,11 +54,16 @@ func (p *Point) Mag() int {
 type Rope struct {
 	Knots    []*Point
 	Max, Min *Point
-	Seen     map[*Point]bool
+	Seen     map[Point]bool
+}
+
+func (r *Rope) MarkSeen(p *Point) {
+	r.Seen[*p] = true
+	// log.Printf("Adding %s to seen in %v", p, &r)
+	// log.Printf("seen: %v", r.Seen)
 }
 
 func (r *Rope) Tail() *Point {
-    log.Printf("tail = %v", r.Knots[len(r.Knots)-1])
 	return r.Knots[len(r.Knots)-1]
 }
 
@@ -67,21 +73,21 @@ func (r *Rope) Head() *Point {
 
 func NewRope(knots int) *Rope {
 	r := &Rope{
-		Max:   &Point{},
-		Min:   &Point{},
-		Seen: map[*Point]bool{
-			&Point{}: true,
-		},
+		Max:  &Point{},
+		Min:  &Point{},
+		Seen: make(map[Point]bool),
 	}
-    for i:=0; i< knots; i++ {
-      r.Knots = append(r.Knots, &Point{})
-    }
+    // log.Printf("Creating new rope with %d knots -> %v", knots, &r)
+	r.MarkSeen(&Point{})
+	for i := 0; i < knots; i++ {
+		r.Knots = append(r.Knots, &Point{})
+	}
 
-    return r
+	return r
 }
 
 func (r *Rope) String() string {
-	res := []string{}
+	res := []string{"\n"}
 	l := "     "
 	for x := r.Min.x; x <= r.Max.x; x++ {
 		l += fmt.Sprintf("%-2d ", x)
@@ -91,18 +97,19 @@ func (r *Rope) String() string {
 		l = fmt.Sprintf("%3d: ", y)
 		for x := r.Min.x; x <= r.Max.x; x++ {
 			p := &Point{x, y}
-			var c string
-			switch {
-			case r.Head().Eq(p):
-				c = "H"
-			case r.Tail().Eq(p):
-				c = "T"
-			case x == 0 && y == 0:
-				c = "s"
-			case r.Seen[p]:
-				c = "#"
-			default:
-				c = "."
+			c := "."
+			for i, k := range r.Knots {
+				if k.Eq(p) {
+					c = fmt.Sprintf("%d", i)
+					break
+				}
+			}
+			if c == "." {
+				if x == 0 && y == 0 {
+					c = "s"
+				} else if r.Seen[*p] {
+					c = "#"
+				}
 			}
 			l += fmt.Sprintf("%s  ", c)
 		}
@@ -112,22 +119,30 @@ func (r *Rope) String() string {
 	return strings.Join(res, "\n")
 }
 
-func (r *Rope) Nudge(dx, dy int) {
-	r.Head().Move(&Point{dx, dy})
-	if r.Head().x > r.Max.x {
-		r.Max.x = r.Head().x
-	}
-	if r.Head().y > r.Max.y {
-		r.Max.y = r.Head().y
-	}
-	if r.Head().x < r.Min.x {
-		r.Min.x = r.Head().x
-	}
-	if r.Head().y < r.Min.y {
-		r.Min.y = r.Head().y
+func (r *Rope) Nudge(i, dx, dy int) {
+	// log.Printf("Nudge %d: %s + (%d,%d)", i, r.Knots[i], dx, dy)
+	r.Knots[i].Move(&Point{dx, dy})
+	if i == 0 {
+		if r.Head().x > r.Max.x {
+			r.Max.x = r.Head().x
+		}
+		if r.Head().y > r.Max.y {
+			r.Max.y = r.Head().y
+		}
+		if r.Head().x < r.Min.x {
+			r.Min.x = r.Head().x
+		}
+		if r.Head().y < r.Min.y {
+			r.Min.y = r.Head().y
+		}
 	}
 	// log.Printf("head -> %s", r.Head())
-	diff := r.Head().Sub(r.Tail())
+	if i+1 >= len(r.Knots) {
+		// log.Printf("tail + (%d, %d) -> %s", dx, dy, r.Tail())
+		r.MarkSeen(r.Tail())
+		return
+	}
+	diff := r.Knots[i].Sub(r.Knots[i+1])
 	if diff.Mag() <= 1 {
 		return
 	}
@@ -142,15 +157,17 @@ func (r *Rope) Nudge(dx, dy int) {
 	} else if diff.y < 0 {
 		my = -1
 	}
-	r.Tail().Move(&Point{mx, my})
-	// log.Printf("tail (%d, %d) -> %s", mx, my, r.Tail())
-	r.Seen[r.Tail()] = true
+	r.Nudge(i+1, mx, my)
 }
 
-func (r *Rope) Move(i Inst) {
-	// log.Print(i.String())
+func (r *Rope) Move(i Inst, debug bool) {
+    if debug { log.Print(i.String()) }
 	for n := 0; n < i.Dist; n++ {
-		r.Nudge(i.Dx, i.Dy)
+        if debug {
+          log.Printf("\n=> %s (%d)", i, n)
+          log.Printf("%s", r)
+        }
+		r.Nudge(0, i.Dx, i.Dy)
 	}
 }
 
@@ -179,8 +196,7 @@ func NewInst(d string, q int) Inst {
 func one(inst []Inst) int {
 	r := NewRope(2)
 	for _, i := range inst {
-		r.Move(i)
-		// log.Printf("\n%s\n", r)
+		r.Move(i, false)
 	}
 	res := 0
 	for _, v := range r.Seen {
@@ -191,8 +207,18 @@ func one(inst []Inst) int {
 	return res
 }
 
-func two(i []Inst) int {
-	return 0
+func two(inst []Inst) int {
+	r := NewRope(10)
+	for _, i := range inst {
+		r.Move(i, true)
+	}
+	res := 0
+	for _, v := range r.Seen {
+		if v {
+			res++
+		}
+	}
+	return res
 }
 
 func readFile(path string) ([]Inst, error) {
