@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"testing"
 
+    "math/big"
+
 	"github.com/google/go-cmp/cmp"
 )
 
@@ -14,10 +16,11 @@ func TestReadFile(t *testing.T) {
 	}
 
 	want := []struct {
-		id         int
-		items      []int
-		test, T, F int
-		opOut      int
+		id    int
+		items []int
+		test  int
+		T, F  int
+		opOut int
 	}{
 		{
 			id:    0,
@@ -59,7 +62,11 @@ func TestReadFile(t *testing.T) {
 			if m.ID != w.id {
 				t.Errorf("Bad ID: want %d, got %d", m.ID, w.id)
 			}
-			if diff := cmp.Diff(w.items, m.Items); diff != "" {
+            wantItems := []*big.Int{}
+            for _, i := range w.items {
+              wantItems = append(wantItems, big.NewInt(int64(i)))
+            }
+			if diff := cmp.Diff(fmt.Sprintf("%v", wantItems), fmt.Sprintf("%v", m.Items)); diff != "" {
 				t.Errorf("Bad items:\n%s", diff)
 			}
 			if m.Test != w.test {
@@ -71,8 +78,8 @@ func TestReadFile(t *testing.T) {
 			if m.False != w.F {
 				t.Errorf("Bad false: want %d, got %d", w.F, m.False)
 			}
-			op := m.Op(5)
-			if op != w.opOut {
+			op := m.Op(big.NewInt(5))
+			if op.Cmp(big.NewInt(int64(w.opOut))) != 0 {
 				t.Errorf("Bad op: want %d, got %d", w.opOut, op)
 			}
 		})
@@ -97,6 +104,15 @@ func TestTurn(t *testing.T) {
 
 }
 
+func Diff(a []int64, b []*big.Int) string {
+  var bl []int64
+  for _, b := range b {
+    bl = append(bl, b.Int64())
+  }
+
+  return cmp.Diff(a, bl)
+}
+
 func TestRound(t *testing.T) {
 	data, err := readFile("sample.txt")
 	if err != nil {
@@ -105,7 +121,7 @@ func TestRound(t *testing.T) {
 
 	tr := NewTroop(data, 3)
 
-	tests := [][][]int{
+	tests := [][][]int64{
 		{{20, 23, 27, 26}, {2080, 25, 167, 207, 401, 1046}, {}, {}},
 		{{695, 10, 71, 135, 350}, {43, 49, 58, 55, 362}, {}, {}},
 		{{16, 18, 21, 20, 122}, {1468, 22, 150, 286, 739}, {}, {}},
@@ -128,6 +144,7 @@ func TestRound(t *testing.T) {
 		{{10, 12, 14, 26, 34}, {245, 93, 53, 199, 115}, {}, {}}, //20
 	}
 
+    tr.Trace = true
 	for n, tc := range tests {
 		tr.Round()
 		if tc == nil {
@@ -136,11 +153,59 @@ func TestRound(t *testing.T) {
 		}
 		t.Logf("Playing round #%d", n)
 		for id, items := range tc {
-			if diff := cmp.Diff(items, tr.Monkeys[id].Items); diff != "" {
-				t.Errorf("Round #%d: Wrong items for M%d: want %v, got %v",
+			if diff := Diff(items, tr.Monkeys[id].Items); diff != "" {
+				t.Fatalf("Round #%d: Wrong items for M%d: want %v, got %v",
 					n, id, items, tr.Monkeys[id].Items)
 			}
 		}
+	}
+
+}
+
+func TestSparseRound(t *testing.T) {
+	data, err := readFile("sample.txt")
+	if err != nil {
+		t.Errorf("%v", err)
+	}
+
+	tr := NewTroop(data, 1)
+
+	tests := map[int][]int{
+		1:     {2, 4, 3, 6},
+		20:    {99, 97, 8, 103},
+		1000:  {5204, 4792, 199, 5192},
+		2000:  {10419, 9577, 392, 10391},
+		3000:  {15638, 14358, 587, 15593},
+		4000:  {20858, 19138, 780, 20797},
+		5000:  {26075, 23921, 974, 26000},
+		6000:  {31294, 28702, 1165, 31204},
+		7000:  {36508, 33488, 1360, 36400},
+		8000:  {41728, 38268, 1553, 41606},
+		9000:  {46945, 43051, 1746, 46807},
+		10000: {52166, 47830, 1938, 52013},
+	}
+
+	c := 0
+	trace := map[int]bool{1000: true, 1001: false}
+	for n, tc := range tests {
+		t.Run(fmt.Sprintf("Round #%d", n), func(t *testing.T) {
+			for c < n {
+				if debug, ok := trace[c]; ok {
+					tr.Trace = debug
+				}
+				tr.Round()
+				c++
+			}
+			t.Logf("Checking round #%d", n)
+			got := []int{}
+			for _, v := range tr.Inspections {
+				got = append(got, v)
+			}
+			if diff := cmp.Diff(tc, got); diff != "" {
+				t.Fatalf("Round #%d: Wrong interactions: want %v, got %v\n%s",
+					n, tc, got, diff)
+			}
+		})
 	}
 
 }
@@ -151,7 +216,7 @@ func TestOne(t *testing.T) {
 		t.Errorf("%v", err)
 	}
 
-    got := one(data)
+	got := one(data)
 	want := 10605
 
 	if got != want {
@@ -166,7 +231,7 @@ func TestTwo(t *testing.T) {
 	}
 
 	got := two(data)
-	want := 0
+	want := 2713310158
 
 	if diff := cmp.Diff(want, got); diff != "" {
 		t.Errorf(diff)
