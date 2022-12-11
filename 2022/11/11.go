@@ -19,6 +19,16 @@ type Monkey struct {
 	False int
 }
 
+func (m *Monkey) Has(item int) bool {
+  for _, i := range m.Items {
+    if i == item {
+      return true
+    }
+  }
+
+  return false
+}
+
 var ops = map[string]func(a, b int) int{
 	"+": func(a, b int) int { return a + b },
 	"-": func(a, b int) int { return a - b },
@@ -63,7 +73,39 @@ func NewMonkey(lines []string) *Monkey {
 }
 
 type Troop struct {
-	Monkeys []Monkey
+	Monkeys []*Monkey
+}
+
+func (t *Troop) Turn(i int) int {
+  m := t.Monkeys[i]
+  cnt := 0
+
+  for _, item := range m.Items {
+    cnt++
+    log.Printf("M#%d examining %d", i, item)
+    next := m.Op(item)
+    log.Printf(" -> %d / 3 -> %d", next, next / 3)
+    next /= 3
+    if next % m.Test == 0 {
+      log.Printf("%d divisible by %d -> %d", next, m.Test, m.True)
+      t.Monkeys[m.True].Items = append(t.Monkeys[m.True].Items, next)
+    } else {
+      log.Printf("%d not divisible by %d -> %d", next, m.Test, m.False)
+      t.Monkeys[m.False].Items = append(t.Monkeys[m.False].Items, next)
+    }
+  }
+  m.Items = []int{}
+
+  return cnt
+}
+
+func (t *Troop) Round() int {
+  cnt := 0
+  for n := range t.Monkeys {
+    cnt += t.Turn(n)
+  }
+
+  return cnt
 }
 
 func one(data []*Monkey) int {

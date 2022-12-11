@@ -79,6 +79,28 @@ func TestReadFile(t *testing.T) {
 	}
 }
 
+func TestTurn(t *testing.T) {
+	data, err := readFile("sample.txt")
+	if err != nil {
+		t.Errorf("%v", err)
+	}
+
+    tr := &Troop{data}
+    got := tr.Turn(0)
+
+    if got != 2 {
+      t.Errorf("Bad inspections, want 2 got %d", got)
+    }
+
+    if !tr.Monkeys[3].Has(500) {
+      t.Errorf("M3 doesn't have 500: %v", tr.Monkeys[3].Items)
+    }
+    if !tr.Monkeys[3].Has(620) {
+      t.Errorf("M3 doesn't have 620: %v", tr.Monkeys[3].Items)
+    }
+
+}
+
 func TestOne(t *testing.T) {
 	data, err := readFile("sample.txt")
 	if err != nil {
