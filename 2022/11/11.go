@@ -32,9 +32,7 @@ func (m *Monkey) Has(item int) bool {
 
 var ops = map[string]func(a, b int) int{
 	"+": func(a, b int) int { return a + b },
-	"-": func(a, b int) int { return a - b },
 	"*": func(a, b int) int { return a * b },
-	"/": func(a, b int) int { return a / b },
 }
 
 func ExtractInts(in string) []int {
@@ -156,6 +154,9 @@ func two(data []*Monkey) int {
 	tr := NewTroop(data, 1)
 	for n := 0; n < 10000; n++ {
 		tr.Round()
+        if n % 1000 == 0 {
+          log.Printf("Round #%d:\n%s", n, tr)
+        }
 	}
 	ints := []int{}
 	for n := range tr.Monkeys {
@@ -186,6 +187,7 @@ func main() {
 	res := one(data)
 	fmt.Printf("%v\n", res)
 
+	data, _ = readFile(os.Args[1])
 	res = two(data)
 	fmt.Printf("%v\n", res)
 }
