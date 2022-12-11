@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"testing"
 
-    "math/big"
-
 	"github.com/google/go-cmp/cmp"
 )
 
@@ -62,11 +60,7 @@ func TestReadFile(t *testing.T) {
 			if m.ID != w.id {
 				t.Errorf("Bad ID: want %d, got %d", m.ID, w.id)
 			}
-            wantItems := []*big.Int{}
-            for _, i := range w.items {
-              wantItems = append(wantItems, big.NewInt(int64(i)))
-            }
-			if diff := cmp.Diff(fmt.Sprintf("%v", wantItems), fmt.Sprintf("%v", m.Items)); diff != "" {
+			if diff := cmp.Diff(fmt.Sprintf("%v", w.items), fmt.Sprintf("%v", m.Items)); diff != "" {
 				t.Errorf("Bad items:\n%s", diff)
 			}
 			if m.Test != w.test {
@@ -78,8 +72,8 @@ func TestReadFile(t *testing.T) {
 			if m.False != w.F {
 				t.Errorf("Bad false: want %d, got %d", w.F, m.False)
 			}
-			op := m.Op(big.NewInt(5))
-			if op.Cmp(big.NewInt(int64(w.opOut))) != 0 {
+			op := m.Op(5)
+			if op != w.opOut {
 				t.Errorf("Bad op: want %d, got %d", w.opOut, op)
 			}
 		})
@@ -104,15 +98,6 @@ func TestTurn(t *testing.T) {
 
 }
 
-func Diff(a []int64, b []*big.Int) string {
-  bl := []int64{}
-  for _, b := range b {
-    bl = append(bl, b.Int64())
-  }
-
-  return cmp.Diff(a, bl)
-}
-
 func TestRound(t *testing.T) {
 	data, err := readFile("sample.txt")
 	if err != nil {
@@ -121,7 +106,7 @@ func TestRound(t *testing.T) {
 
 	tr := NewTroop(data, 3)
 
-	tests := [][][]int64{
+	tests := [][][]int{
 		{{20, 23, 27, 26}, {2080, 25, 167, 207, 401, 1046}, {}, {}},
 		{{695, 10, 71, 135, 350}, {43, 49, 58, 55, 362}, {}, {}},
 		{{16, 18, 21, 20, 122}, {1468, 22, 150, 286, 739}, {}, {}},
@@ -152,13 +137,12 @@ func TestRound(t *testing.T) {
 		}
 		t.Logf("Playing round #%d", n)
 		for id, items := range tc {
-			if diff := Diff(items, tr.Monkeys[id].Items); diff != "" {
-				t.Fatalf("Round #%d: Wrong items for M%d: want %v, got %v",
-					n, id, items, tr.Monkeys[id].Items)
+			if diff := cmp.Diff(items, tr.Monkeys[id].Items); diff != "" {
+				t.Fatalf("Round #%d: Wrong items for M%d: want %v, got %v\n%s",
+					n, id, items, tr.Monkeys[id].Items, diff)
 			}
 		}
 	}
-
 }
 
 func TestSparseRound(t *testing.T) {
