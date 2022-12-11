@@ -163,6 +163,7 @@ func two(data []*Monkey) int {
 	}
 	log.Printf("After 10000 rounds: %v", ints)
 	sort.Sort(sort.Reverse(sort.IntSlice(ints)))
+	log.Printf("sorted: %v", ints)
 	return ints[0] * ints[1]
 }
 
