@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+    "sort"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -172,8 +173,9 @@ func TestSparseRound(t *testing.T) {
     for k := range tests {
       keys = append(keys, k)
     }
+    sort.Ints(keys)
 	c := 0
-	trace := map[int]bool{0:true, 1: false}
+	trace := map[int]bool{}
 	for _, n := range keys {
         t.Run(fmt.Sprintf("Round #%d", n), func(t *testing.T) {
             tc := tests[n]
@@ -184,7 +186,6 @@ func TestSparseRound(t *testing.T) {
 				tr.Round()
 				c++
 			}
-			t.Logf("Checking round #%d: %s", n, tr)
 			got := []int{}
 			for _, v := range tr.Inspections {
 				got = append(got, v)
