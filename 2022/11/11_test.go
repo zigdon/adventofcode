@@ -85,19 +85,63 @@ func TestTurn(t *testing.T) {
 		t.Errorf("%v", err)
 	}
 
-    tr := &Troop{data}
-    got := tr.Turn(0)
+	tr := NewTroop(data, 3)
+	tr.Turn(0)
 
-    if got != 2 {
-      t.Errorf("Bad inspections, want 2 got %d", got)
-    }
+	if !tr.Monkeys[3].Has(500) {
+		t.Errorf("M3 doesn't have 500: %v", tr.Monkeys[3].Items)
+	}
+	if !tr.Monkeys[3].Has(620) {
+		t.Errorf("M3 doesn't have 620: %v", tr.Monkeys[3].Items)
+	}
 
-    if !tr.Monkeys[3].Has(500) {
-      t.Errorf("M3 doesn't have 500: %v", tr.Monkeys[3].Items)
-    }
-    if !tr.Monkeys[3].Has(620) {
-      t.Errorf("M3 doesn't have 620: %v", tr.Monkeys[3].Items)
-    }
+}
+
+func TestRound(t *testing.T) {
+	data, err := readFile("sample.txt")
+	if err != nil {
+		t.Errorf("%v", err)
+	}
+
+	tr := NewTroop(data, 3)
+
+	tests := [][][]int{
+		{{20, 23, 27, 26}, {2080, 25, 167, 207, 401, 1046}, {}, {}},
+		{{695, 10, 71, 135, 350}, {43, 49, 58, 55, 362}, {}, {}},
+		{{16, 18, 21, 20, 122}, {1468, 22, 150, 286, 739}, {}, {}},
+		{{491, 9, 52, 97, 248, 34}, {39, 45, 43, 258}, {}, {}},
+		{{15, 17, 16, 88, 1037}, {20, 110, 205, 524, 72}, {}, {}},
+		{{8, 70, 176, 26, 34}, {481, 32, 36, 186, 2190}, {}, {}},
+		{{162, 12, 14, 64, 732, 17}, {148, 372, 55, 72}, {}, {}},
+		{{51, 126, 20, 26, 136}, {343, 26, 30, 1546, 36}, {}, {}},
+		{{116, 10, 12, 517, 14}, {108, 267, 43, 55, 288}, {}, {}},
+		{{91, 16, 20, 98}, {481, 245, 22, 26, 1092, 30}, {}, {}}, // 10
+		{},
+		{},
+		{},
+		{},
+		{{83, 44, 8, 184, 9, 20, 26, 102}, {110, 36}, {}, {}}, // 15
+		{},
+		{},
+		{},
+		{},
+		{{10, 12, 14, 26, 34}, {245, 93, 53, 199, 115}, {}, {}}, //20
+	}
+
+	for n, tc := range tests {
+		tr.Round()
+		if tc == nil {
+			t.Logf("Skipping round #%d", n)
+			continue
+		}
+		t.Logf("Playing round #%d", n)
+		for id, items := range tc {
+			if diff := cmp.Diff(items, tr.Monkeys[id].Items); diff != "" {
+				t.Errorf("Round #%d: Wrong items for M%d: want %v, got %v",
+					n, id, items, tr.Monkeys[id].Items)
+			}
+		}
+	}
 
 }
 
@@ -107,11 +151,11 @@ func TestOne(t *testing.T) {
 		t.Errorf("%v", err)
 	}
 
-	got := one(data)
-	want := 0
+    got := one(data)
+	want := 10605
 
-	if diff := cmp.Diff(want, got); diff != "" {
-		t.Errorf(diff)
+	if got != want {
+		t.Errorf("bad MB: want %d, got %d", want, got)
 	}
 }
 
