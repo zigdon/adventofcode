@@ -16,21 +16,22 @@ func two(data []int) int {
 	return 0
 }
 
-func readFile(path string) ([]int, error) {
+func readFile(path string) []int {
 	res := common.ReadTransformedFile(path, common.IgnoreBlankLines)
 
-	return common.AsInts(res), nil
+	return common.AsInts(res)
 }
 
 func main() {
-	data, err := readFile(os.Args[1])
-	if err != nil {
-		log.Fatalf("%v", err)
-	}
+    log.Println("Reading data...")
+	data := readFile(os.Args[1])
 
+    log.Println("Part A")
 	res := one(data)
 	fmt.Printf("%v\n", res)
 
+    log.Println("Part B")
+	data = readFile(os.Args[1])
 	res = two(data)
 	fmt.Printf("%v\n", res)
 }

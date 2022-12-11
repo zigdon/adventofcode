@@ -7,11 +7,7 @@ import (
 )
 
 func TestReadFile(t *testing.T) {
-	got, err := readFile("sample.txt")
-	if err != nil {
-		t.Errorf("%v", err)
-	}
-
+	got := readFile("sample.txt")
 	want := []int{}
 
 	if diff := cmp.Diff(want, got); diff != "" {
@@ -20,11 +16,7 @@ func TestReadFile(t *testing.T) {
 }
 
 func TestOne(t *testing.T) {
-	data, err := readFile("sample.txt")
-	if err != nil {
-		t.Errorf("%v", err)
-	}
-
+	data := readFile("sample.txt")
 	got := one(data)
 	want := 0
 
@@ -34,11 +26,7 @@ func TestOne(t *testing.T) {
 }
 
 func TestTwo(t *testing.T) {
-	data, err := readFile("sample.txt")
-	if err != nil {
-		t.Errorf("%v", err)
-	}
-
+	data := readFile("sample.txt")
 	got := two(data)
 	want := 0
 
