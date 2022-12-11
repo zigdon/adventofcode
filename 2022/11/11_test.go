@@ -105,7 +105,7 @@ func TestTurn(t *testing.T) {
 }
 
 func Diff(a []int64, b []*big.Int) string {
-  var bl []int64
+  bl := []int64{}
   for _, b := range b {
     bl = append(bl, b.Int64())
   }
@@ -144,7 +144,6 @@ func TestRound(t *testing.T) {
 		{{10, 12, 14, 26, 34}, {245, 93, 53, 199, 115}, {}, {}}, //20
 	}
 
-    tr.Trace = true
 	for n, tc := range tests {
 		tr.Round()
 		if tc == nil {
@@ -185,10 +184,15 @@ func TestSparseRound(t *testing.T) {
 		10000: {52166, 47830, 1938, 52013},
 	}
 
+    keys := []int{}
+    for k := range tests {
+      keys = append(keys, k)
+    }
 	c := 0
-	trace := map[int]bool{1000: true, 1001: false}
-	for n, tc := range tests {
-		t.Run(fmt.Sprintf("Round #%d", n), func(t *testing.T) {
+	trace := map[int]bool{0:true, 1: false}
+	for _, n := range keys {
+        t.Run(fmt.Sprintf("Round #%d", n), func(t *testing.T) {
+            tc := tests[n]
 			for c < n {
 				if debug, ok := trace[c]; ok {
 					tr.Trace = debug
@@ -196,7 +200,7 @@ func TestSparseRound(t *testing.T) {
 				tr.Round()
 				c++
 			}
-			t.Logf("Checking round #%d", n)
+			t.Logf("Checking round #%d: %s", n, tr)
 			got := []int{}
 			for _, v := range tr.Inspections {
 				got = append(got, v)
@@ -205,7 +209,7 @@ func TestSparseRound(t *testing.T) {
 				t.Fatalf("Round #%d: Wrong interactions: want %v, got %v\n%s",
 					n, tc, got, diff)
 			}
-		})
+        })
 	}
 
 }

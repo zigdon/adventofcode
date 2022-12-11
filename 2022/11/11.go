@@ -84,10 +84,24 @@ type Troop struct {
 	Inspections []int
 	Decay       int
 	Trace       bool
+    Scale int
 }
 
 func NewTroop(m []*Monkey, d int) *Troop {
-	return &Troop{Monkeys: m, Decay: d, Inspections: make([]int, len(m))}
+	tr := &Troop{Monkeys: m, Decay: d, Inspections: make([]int, len(m)), Scale: 1}
+    for _, m := range tr.Monkeys {
+      tr.Scale *= m.Test
+    }
+    return tr
+}
+
+func (t *Troop) String() string {
+  res := []string{}
+  for n, m := range t.Monkeys {
+    res = append(res, fmt.Sprintf("M%d[%d]: %v", n, t.Inspections[n], m.Items))
+  }
+
+  return strings.Join(res, "\n")
 }
 
 func (t *Troop) Debug(tmpl string, args ...interface{}) {
@@ -110,7 +124,8 @@ func (t *Troop) Turn(i int) int {
         }
 		t.Debug(" -> %d / %d -> %d", next, t.Decay, big.NewInt(0).Div(next, big.NewInt(int64(t.Decay))))
 		next.Div(next, big.NewInt(int64(t.Decay)))
-		if big.NewInt(0).Mod(next, big.NewInt(int64(m.Test))) == big.NewInt(0) {
+		next.Mod(next, big.NewInt(int64(t.Scale)))
+		if big.NewInt(0).Mod(next, big.NewInt(int64(m.Test))).Cmp(big.NewInt(0)) == 0 {
 			t.Debug("%d divisible by %d -> %d", next, m.Test, m.True)
 			t.Monkeys[m.True].Items = append(t.Monkeys[m.True].Items, next)
 		} else {
