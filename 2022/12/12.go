@@ -14,6 +14,33 @@ type Point struct {
 func(p Point)String() string {
   return fmt.Sprintf("[%d,%d]", p.X, p.Y)
 }
+func (p Point)Eq(p2 Point) bool {
+  return p.X == p2.X && p.Y == p2.Y
+}
+
+type Path struct {
+  Steps []Point
+  Been map[Point]bool
+}
+
+func (p *Path) At() Point {
+  return p.Steps[len(p.Steps)-1]
+}
+
+func NewPath(p... Point) *Path {
+  path := &Path{Steps: p}
+  been := map[Point]bool{}
+  for _, at := range p {
+    been[at] = true
+  }
+  path.Been = been
+
+  return path
+}
+
+func (p *Path) NextSteps() []*Path {
+  return nil
+}
 
 type Map struct {
   Alt map[Point]int
@@ -30,8 +57,27 @@ func NewMap() *Map {
   }
 }
 
+func (m *Map) Route(s, e Point) *Path {
+  paths := []*Path{NewPath(s)}
+
+  for true {
+    next := []*Path{}
+    for _, p := range paths {
+      for _, n := range p.NextSteps() {
+        if n.At().Eq(e) {
+          return n
+        }
+        next = append(next, n)
+      }
+    }
+    paths = next
+  }
+
+  return nil
+}
+
 func one(m *Map) int {
-	return 0
+	return len(m.Route(m.Start, m.End).Steps)
 }
 
 func two(m *Map) int {
