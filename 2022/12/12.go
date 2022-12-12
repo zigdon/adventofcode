@@ -212,7 +212,22 @@ func one(m *Map) *Path {
 }
 
 func two(m *Map) *Path {
-	return nil
+	var best *Path
+	for s, a := range m.Alt {
+		if a != 0 {
+			continue
+		}
+		p := m.Route(s, m.End)
+		if p == nil {
+			continue
+		}
+		if best == nil || len(p.Steps) < len(best.Steps) {
+			best = p
+			log.Printf("New best route: %d steps\n%s", len(best.Steps)-1, best)
+		}
+	}
+
+	return best
 }
 
 func readFile(path string) *Map {
@@ -242,10 +257,10 @@ func main() {
 
 	log.Println("Part A")
 	res := one(data)
-	fmt.Printf("%v\n", res)
+	fmt.Printf("%v\n%d steps\n", res, len(res.Steps)-1)
 
 	log.Println("Part B")
 	data = readFile(os.Args[1])
 	res = two(data)
-	fmt.Printf("%v\n", res)
+	fmt.Printf("%v\n%d steps\n", res, len(res.Steps)-1)
 }

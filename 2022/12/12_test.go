@@ -48,4 +48,13 @@ func TestOne(t *testing.T) {
 }
 
 func TestTwo(t *testing.T) {
+	data := readFile("sample.txt")
+	p := two(data)
+	if p == nil {
+		t.Fatalf("No path found")
+	}
+	if len(p.Steps)-1 != 29 {
+		t.Logf("\n%s", data)
+		t.Errorf("Bad path: want %d, got %d:\n%s", 29, len(p.Steps), p)
+	}
 }
