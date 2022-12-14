@@ -157,7 +157,7 @@ func TestOne(t *testing.T) {
 func TestTwo(t *testing.T) {
 	data := readFile("sample.txt")
 	got := two(data)
-	want := 0
+	want := 140
 
 	if diff := cmp.Diff(want, got); diff != "" {
 		t.Errorf(diff)

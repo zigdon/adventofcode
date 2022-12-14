@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+    "sort"
 	"strings"
 
 	"github.com/zigdon/adventofcode/common"
@@ -181,8 +182,28 @@ func one(data []Pair) int {
 	return res
 }
 
+type Bundle []Packet
+
+func (b Bundle) Len() int { return len(b) }
+func (b Bundle) Swap(i, j int) { b[i], b[j] = b[j], b[i] }
+func (b Bundle) Less(i, j int) bool { return b[i].Cmp(&b[j]) < 0 }
+
 func two(data []Pair) int {
-	return 0
+    data = append(data, NewPair("[[2]]", "[[6]]"))
+    packets := []Packet{}
+    for _, p := range data {
+      packets = append(packets, *p.Left, *p.Right)
+    }
+    sort.Sort(Bundle(packets))
+    res := 1
+    for n, p := range packets {
+      log.Printf("%d: %s", n, &p)
+      if p.String() == "[[2]]" || p.String() == "[[6]]" {
+        res *= n+1
+      }
+    }
+
+	return res
 }
 
 func readFile(path string) []Pair {
