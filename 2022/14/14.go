@@ -48,6 +48,7 @@ func (o Object) String() string {
 type Cave struct {
 	Scan     map[Point]Object
 	Min, Max *Point
+	Floor    bool
 }
 
 func NewCave() *Cave {
@@ -118,11 +119,18 @@ func (c *Cave) AddStructure(l string) {
 		cur = p
 	}
 }
-func (c *Cave) Drop(p Point) *Point {
+func (c *Cave) Drop(p Point, floor int) *Point {
 	pos := &Point{p.X, p.Y}
+	if c.Scan[*pos] != Source {
+		log.Printf("%s already occupied: %s", p, c.Scan[*pos])
+		return nil
+	}
 	// Starting from the drop point, go down until you hit something, then
 	// down-left, then down-right, then stop.
-	for pos.Y <= c.Max.Y {
+	if floor == 0 {
+		floor = c.Max.Y
+	}
+	for pos.Y <= floor {
 		pos.Y += 1
 		if c.Scan[*pos] == Air {
 			continue
@@ -139,10 +147,11 @@ func (c *Cave) Drop(p Point) *Point {
 		pos.X -= 1
 		break
 	}
-	if pos.Y > c.Max.Y {
+	if !c.Floor && pos.Y > c.Max.Y {
 		return nil
 	}
 	c.Scan[*pos] = Sand
+	c.UpdateSize(*pos)
 
 	return pos
 }
@@ -151,7 +160,7 @@ func one(c *Cave) int {
 	start := Point{500, 0}
 	n := 0
 	for true {
-		got := c.Drop(start)
+		got := c.Drop(start, 0)
 		if got == nil {
 			return n
 		}
@@ -160,7 +169,18 @@ func one(c *Cave) int {
 	return 0
 }
 
-func two(data *Cave) int {
+func two(c *Cave) int {
+	c.Floor = true
+	start := Point{500, 0}
+	n := 0
+	floor := c.Max.Y
+	for true {
+		got := c.Drop(start, floor)
+		if got == nil {
+			return n
+		}
+		n++
+	}
 	return 0
 }
 

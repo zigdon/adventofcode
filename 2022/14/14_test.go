@@ -9,8 +9,9 @@ import (
 func TestReadFile(t *testing.T) {
 	got := readFile("sample.txt")
 	want := &Cave{
-		Min: &Point{494, 0},
-		Max: &Point{503, 9},
+		Floor: false,
+		Min:   &Point{494, 0},
+		Max:   &Point{503, 9},
 		Scan: map[Point]Object{
 			{494, 9}: Rock,
 			{495, 9}: Rock,
@@ -54,18 +55,18 @@ func TestDrop(t *testing.T) {
 
 	source := Point{500, 0}
 	for n, tc := range tests {
-		got := cave.Drop(source)
+		got := cave.Drop(source, 0)
 		if cmp.Diff(tc, got) != "" {
 			t.Errorf("Error after %d drops: want %s, got %s\n%s", n, tc, got, cave)
 		}
 	}
 
 	for n := len(tests); n < 24; n++ {
-		if cave.Drop(source) == nil {
+		if cave.Drop(source, 0) == nil {
 			t.Errorf("Drop %d is off the ledge", n)
 		}
 	}
-	p := cave.Drop(source)
+	p := cave.Drop(source, 0)
 	if p != nil {
 		t.Errorf("Last drop ended up at %s\n%s", p, cave)
 	}
@@ -76,6 +77,7 @@ func TestOne(t *testing.T) {
 	data := readFile("sample.txt")
 	got := one(data)
 	want := 24
+	t.Logf("\n%s", data)
 
 	if diff := cmp.Diff(want, got); diff != "" {
 		t.Errorf(diff)
@@ -85,7 +87,8 @@ func TestOne(t *testing.T) {
 func TestTwo(t *testing.T) {
 	data := readFile("sample.txt")
 	got := two(data)
-	want := 0
+	want := 93
+	t.Logf("\n%s", data)
 
 	if diff := cmp.Diff(want, got); diff != "" {
 		t.Errorf(diff)
