@@ -79,16 +79,19 @@ func (p *Packet) String() string {
 		return fmt.Sprintf("%d", p.Val)
 	}
 	for _, s := range p.Sub {
-		if len(s.Sub) > 0 {
-			res = append(res, "["+s.String()+"]")
+		if s.Empty {
+			res = append(res, "E")
+		} else if len(s.Sub) > 0 {
+			res = append(res, s.String())
 		} else {
 			res = append(res, fmt.Sprintf("%d", s.Val))
 		}
 	}
-	return strings.Join(res, ",")
+	return "[" + strings.Join(res, ",") + "]"
 }
 
 type Pair struct {
+	Original    string
 	Left, Right *Packet
 }
 
@@ -102,7 +105,9 @@ func (p Pair) Parse(s string) *Packet {
 	// log.Printf("%q:", s)
 	for _, i := range Segment(s) {
 		// log.Printf("-> %q", i)
-		if strings.HasPrefix(i, "[") {
+		if i == "[]" {
+			pk.Sub = append(pk.Sub, &Packet{Literal: "[]", Empty: true})
+		} else if strings.HasPrefix(i, "[") {
 			pk.Sub = append(pk.Sub, p.Parse(i))
 		} else {
 			pk.Sub = append(pk.Sub, &Packet{Literal: i, Val: common.MustInt(i)})
@@ -116,7 +121,7 @@ func (p Pair) Ordered() bool {
 }
 
 func NewPair(l, r string) Pair {
-	p := Pair{}
+	p := Pair{Original: strings.Join([]string{l, r}, " || ")}
 	p.Left = p.Parse(l)
 	p.Right = p.Parse(r)
 	return p
@@ -153,7 +158,7 @@ func Segment(s string) []string {
 func one(data []Pair) int {
 	res := 0
 	for i, p := range data {
-		log.Println()
+		log.Printf("=== %d ===: %s", i+1, p.Original)
 		if p.Ordered() {
 			res += i + 1
 			log.Printf("Pair %d ordered: %s", i, p)

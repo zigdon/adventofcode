@@ -27,20 +27,57 @@ func mk(n ...interface{}) *Packet {
 func TestReadFile(t *testing.T) {
 	got := readFile("sample.txt")
 	want := []Pair{
-		{mk(1, 1, 3, 1, 1), mk(1, 1, 5, 1, 1)},
-		{mk(mk(1), mk(2, 3, 4)), mk(mk(1), 4)},
-		{mk(9), mk(mk(8, 7, 6))},
-		{mk(mk(4, 4), 4, 4), mk(mk(4, 4), 4, 4, 4)},
-		{mk(7, 7, 7, 7), mk(7, 7, 7)},
-		{mkE(), mk(3)},
-		{mk(mk(mkE())), mk(mkE())},
-		{mk(1, mk(2, mk(3, mk(4, mk(5, 6, 7)))), 8, 9),
-			mk(1, mk(2, mk(3, mk(4, mk(5, 6, 0)))), 8, 9)},
+		{Left: mk(1, 1, 3, 1, 1), Right: mk(1, 1, 5, 1, 1)},
+		{Left: mk(mk(1), mk(2, 3, 4)), Right: mk(mk(1), 4)},
+		{Left: mk(9), Right: mk(mk(8, 7, 6))},
+		{Left: mk(mk(4, 4), 4, 4), Right: mk(mk(4, 4), 4, 4, 4)},
+		{Left: mk(7, 7, 7, 7), Right: mk(7, 7, 7)},
+		{Left: mkE(), Right: mk(3)},
+		{Left: mk(mk(mkE())), Right: mk(mkE())},
+		{Left: mk(1, mk(2, mk(3, mk(4, mk(5, 6, 7)))), 8, 9),
+			Right: mk(1, mk(2, mk(3, mk(4, mk(5, 6, 0)))), 8, 9)},
 	}
 
-	if diff := cmp.Diff(want, got, cmpopts.IgnoreFields(Packet{}, "Literal")); diff != "" {
+	if diff := cmp.Diff(want, got,
+		cmpopts.IgnoreFields(Pair{}, "Original"),
+		cmpopts.IgnoreFields(Packet{}, "Literal")); diff != "" {
 		t.Error(diff)
 	}
+}
+
+func TestParse(t *testing.T) {
+	tests := []struct {
+		in    string
+		want  *Packet
+		wantS string
+	}{
+		{
+			in:    "[[8,[],[10]],[]]",
+			want:  mk(mk(8, mkE(), mk(10)), mkE()),
+			wantS: "[[8,E,[10]],E]",
+		},
+		{
+			in:    "[[[[8,5,6,6,5],1,[10]],[]],[],[],[7],[2,2]]",
+			want:  mk(mk(mk(mk(8, 5, 6, 6, 5), 1, mk(10)), mkE()), mkE(), mkE(), mk(7), mk(2, 2)),
+			wantS: "[[[[8,5,6,6,5],1,[10]],E],E,E,[7],[2,2]]",
+		},
+		{
+			in:    "[1,[],5]",
+			want:  mk(1, mkE(), 5),
+			wantS: "[1,E,5]",
+		},
+	}
+
+	for _, tc := range tests {
+		got := Pair{}.Parse(tc.in)
+		if diff := cmp.Diff(tc.want, got, cmpopts.IgnoreFields(Packet{}, "Literal")); diff != "" {
+			t.Errorf(diff)
+		}
+		if diff := cmp.Diff(tc.wantS, got.String()); diff != "" {
+			t.Errorf(diff)
+		}
+	}
+
 }
 
 func TestLt(t *testing.T) {
