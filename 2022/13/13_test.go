@@ -128,6 +128,9 @@ func TestExtraOrdered(t *testing.T) {
 		},
 		{"[[[]]]", "[[]]", false},
 		{"[[]]", "[[[]]]", true},
+        {"[[[]]]", "[0]", true},
+        {"[0]", "[[[]]]", false},
+        {"[9]", "[[9,9]]", true},
 	}
 
 	for _, tc := range tests {

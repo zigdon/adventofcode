@@ -20,27 +20,32 @@ func (p *Packet) Value() int {
 	if len(p.Sub) > 0 {
 		return p.Sub[0].Value()
 	}
+    if p.Empty {
+      return -999
+    }
 	return p.Val
 }
 
 func (p *Packet) Cmp(p2 *Packet) int {
-	log.Printf("Comparing:\n%s\n%s", p, p2)
-	if len(p.Sub) == 0 || len(p2.Sub) == 0 {
-		if p.Empty && !p2.Empty {
-			log.Printf("Short left (empty)")
-			return -1
-		}
-		if !p.Empty && p2.Empty {
-			log.Printf("Short right (empty)")
-			return 1
-		}
-		if p.Empty && p2.Empty {
-			log.Printf("== Both empty")
-			return 0
-		}
+	// log.Printf("Comparing:\n%s\n%s", p, p2)
+
+    if p.Empty && !p2.Empty {
+        // log.Printf("Short left (empty)")
+        return -1
+    }
+    if !p.Empty && p2.Empty {
+        // log.Printf("Short right (empty)")
+        return 1
+    }
+    if p.Empty && p2.Empty {
+        // log.Printf("== Both empty")
+        return 0
+    }
+
+	if len(p.Sub) == 0 && len(p2.Sub) == 0 {
 		v1 := p.Value()
 		v2 := p2.Value()
-		log.Printf("Ints: %d <? %d", v1, v2)
+		// log.Printf("Ints: %d <? %d", v1, v2)
 		if v1 < v2 {
 			return -1
 		} else if v1 == v2 {
@@ -49,24 +54,32 @@ func (p *Packet) Cmp(p2 *Packet) int {
 			return 1
 		}
 	}
+
+    if len(p.Sub) == 0 {
+      p = &Packet{Literal: fmt.Sprintf("Fake [%d]", p.Value()), Sub: []*Packet{p}}
+    }
+    if len(p2.Sub) == 0 {
+      p2 = &Packet{Literal: fmt.Sprintf("Fake [%d]", p2.Value()), Sub: []*Packet{p2}}
+    }
+
 	for i := range p.Sub {
 		if len(p2.Sub) <= i {
-			log.Printf("Short right: %d vs %d", len(p.Sub), len(p2.Sub))
+			// log.Printf("Short right: %d vs %d", len(p.Sub), len(p2.Sub))
 			return 1
 		}
 		v := p.Sub[i].Cmp(p2.Sub[i])
 		if v == 0 {
-			log.Printf("[%d]: %s == %s", i, p.Sub[i], p2.Sub[i])
+			// log.Printf("[%d]: %s == %s", i, p.Sub[i], p2.Sub[i])
 			continue
 		}
-		log.Printf("%s <=> %s = %d", p.Sub[i], p2.Sub[i], v)
+		// log.Printf("%s <=> %s = %d", p.Sub[i], p2.Sub[i], v)
 		return v
 	}
 	if len(p.Sub) < len(p2.Sub) {
-		log.Printf("Short left: %d vs %d", len(p.Sub), len(p2.Sub))
+		// log.Printf("Short left: %d vs %d", len(p.Sub), len(p2.Sub))
 		return -1
 	}
-	log.Printf("fallthrough: %s vs %s", p, p2)
+	// log.Printf("fallthrough: %s vs %s", p, p2)
 	return 0
 }
 
@@ -161,7 +174,7 @@ func one(data []Pair) int {
 		log.Printf("=== %d ===: %s", i+1, p.Original)
 		if p.Ordered() {
 			res += i + 1
-			log.Printf("Pair %d ordered: %s", i, p)
+			log.Printf("Pair %d ordered: %s", i+1, p)
 		}
 	}
 
