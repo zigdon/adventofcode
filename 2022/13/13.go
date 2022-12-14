@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"log"
 	"os"
-    "sort"
+	"sort"
 	"strings"
 
 	"github.com/zigdon/adventofcode/common"
@@ -21,27 +21,27 @@ func (p *Packet) Value() int {
 	if len(p.Sub) > 0 {
 		return p.Sub[0].Value()
 	}
-    if p.Empty {
-      return -999
-    }
+	if p.Empty {
+		return -999
+	}
 	return p.Val
 }
 
 func (p *Packet) Cmp(p2 *Packet) int {
 	// log.Printf("Comparing:\n%s\n%s", p, p2)
 
-    if p.Empty && !p2.Empty {
-        // log.Printf("Short left (empty)")
-        return -1
-    }
-    if !p.Empty && p2.Empty {
-        // log.Printf("Short right (empty)")
-        return 1
-    }
-    if p.Empty && p2.Empty {
-        // log.Printf("== Both empty")
-        return 0
-    }
+	if p.Empty && !p2.Empty {
+		// log.Printf("Short left (empty)")
+		return -1
+	}
+	if !p.Empty && p2.Empty {
+		// log.Printf("Short right (empty)")
+		return 1
+	}
+	if p.Empty && p2.Empty {
+		// log.Printf("== Both empty")
+		return 0
+	}
 
 	if len(p.Sub) == 0 && len(p2.Sub) == 0 {
 		v1 := p.Value()
@@ -56,12 +56,12 @@ func (p *Packet) Cmp(p2 *Packet) int {
 		}
 	}
 
-    if len(p.Sub) == 0 {
-      p = &Packet{Literal: fmt.Sprintf("Fake [%d]", p.Value()), Sub: []*Packet{p}}
-    }
-    if len(p2.Sub) == 0 {
-      p2 = &Packet{Literal: fmt.Sprintf("Fake [%d]", p2.Value()), Sub: []*Packet{p2}}
-    }
+	if len(p.Sub) == 0 {
+		p = &Packet{Literal: fmt.Sprintf("Fake [%d]", p.Value()), Sub: []*Packet{p}}
+	}
+	if len(p2.Sub) == 0 {
+		p2 = &Packet{Literal: fmt.Sprintf("Fake [%d]", p2.Value()), Sub: []*Packet{p2}}
+	}
 
 	for i := range p.Sub {
 		if len(p2.Sub) <= i {
@@ -184,24 +184,24 @@ func one(data []Pair) int {
 
 type Bundle []Packet
 
-func (b Bundle) Len() int { return len(b) }
-func (b Bundle) Swap(i, j int) { b[i], b[j] = b[j], b[i] }
+func (b Bundle) Len() int           { return len(b) }
+func (b Bundle) Swap(i, j int)      { b[i], b[j] = b[j], b[i] }
 func (b Bundle) Less(i, j int) bool { return b[i].Cmp(&b[j]) < 0 }
 
 func two(data []Pair) int {
-    data = append(data, NewPair("[[2]]", "[[6]]"))
-    packets := []Packet{}
-    for _, p := range data {
-      packets = append(packets, *p.Left, *p.Right)
-    }
-    sort.Sort(Bundle(packets))
-    res := 1
-    for n, p := range packets {
-      log.Printf("%d: %s", n, &p)
-      if p.String() == "[[2]]" || p.String() == "[[6]]" {
-        res *= n+1
-      }
-    }
+	data = append(data, NewPair("[[2]]", "[[6]]"))
+	packets := []Packet{}
+	for _, p := range data {
+		packets = append(packets, *p.Left, *p.Right)
+	}
+	sort.Sort(Bundle(packets))
+	res := 1
+	for n, p := range packets {
+		log.Printf("%d: %s", n, &p)
+		if p.String() == "[[2]]" || p.String() == "[[6]]" {
+			res *= n + 1
+		}
+	}
 
 	return res
 }
