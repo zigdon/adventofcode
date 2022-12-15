@@ -126,10 +126,12 @@ func TestFill(t *testing.T) {
 
 func TestOne(t *testing.T) {
 	data := readFile("sample.txt")
-	got := one(data)
-	want := 0
+	got := one(data, 10)
+	want := 26
 
 	if diff := cmp.Diff(want, got); diff != "" {
+		s := strings.Split(data.String(), "\n")
+		t.Logf("\n%s", strings.Join(s[10:12], "\n"))
 		t.Errorf(diff)
 	}
 }

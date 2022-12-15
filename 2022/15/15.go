@@ -131,6 +131,7 @@ func (f *Field) FillAir(p Point, r int) {
 func (f *Field) AddSensor(s, b Point) {
 	// We can mark anything with this distance or less as Air
 	dist := s.Dist(b)
+	log.Printf("New sensor+beacon: S:%s B:%s dist=%d", s, b, dist)
 	f.UpdateSize(s)
 	f.UpdateSize(b)
 	f.FillAir(s, dist)
@@ -139,8 +140,14 @@ func (f *Field) AddSensor(s, b Point) {
 	f.Objs[b] = Beacon
 }
 
-func one(data *Field) int {
-	return 0
+func one(f *Field, y int) int {
+	res := 0
+	for x := f.Min.X; x <= f.Max.X; x++ {
+		if o, ok := f.Objs[Point{x, y}]; ok && o == Air {
+			res++
+		}
+	}
+	return res
 }
 
 func two(data *Field) int {
@@ -164,7 +171,7 @@ func main() {
 	data := readFile(os.Args[1])
 
 	log.Println("Part A")
-	res := one(data)
+	res := one(data, 2000000)
 	fmt.Printf("%v\n", res)
 
 	log.Println("Part B")
