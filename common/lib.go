@@ -312,3 +312,19 @@ func StringDiff(s1, s2 string) string {
 
 	return strings.Join(out, "\n")
 }
+
+// ExtractInts returns a list of all the numbers found in a string
+func ExtractInts(s string) []int {
+	res := []int{}
+	for _, w := range strings.Split(s, " ") {
+		w = strings.TrimFunc(w, func(r rune) bool {
+			return r != '-' && (r < '0' || r > '9')
+		})
+		if w == "" {
+			continue
+		}
+		res = append(res, MustInt(w))
+	}
+
+	return res
+}

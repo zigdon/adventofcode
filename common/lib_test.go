@@ -94,7 +94,7 @@ func TestAsStrings(t *testing.T) {
 		{
 			"ignore non-strings",
 			[]interface{}{"10", "twenty", []string{"30"}, "30.1"},
-			[]string{"10", "twenty", "30.1"},
+			[]string{"10", "twenty", "30", "30.1"},
 		},
 	}
 
@@ -429,5 +429,29 @@ func TestBuffer(t *testing.T) {
 			}
 		})
 	}
+}
 
+func TestExtractInts(t *testing.T) {
+	tests := []struct {
+		in   string
+		want []int
+	}{
+		{
+			in:   "12",
+			want: []int{12},
+		},
+		{
+			in:   "something 5, then -19",
+			want: []int{5, -19},
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.in, func(t *testing.T) {
+			got := ExtractInts(tc.in)
+			if diff := cmp.Diff(tc.want, got); diff != "" {
+				t.Errorf(diff)
+			}
+		})
+	}
 }
