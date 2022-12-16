@@ -45,7 +45,7 @@ func TestReadFile(t *testing.T) {
 		-4:  {{-4, 8}, {18, 22}},
 		-3:  {{-5, 9}, {17, 23}},
 		-2:  {{-6, 10}, {16, 24}},
-		-1:  {{13, 13}, {-7, 11}, {15, 25}},
+		-1:  {{-7, 11}, {13, 13}, {15, 25}},
 		0:   {{-8, 26}},
 		1:   {{-7, 27}},
 		2:   {{-6, 26}},
@@ -55,8 +55,8 @@ func TestReadFile(t *testing.T) {
 		6:   {{-2, 22}},
 		7:   {{-1, 21}},
 		8:   {{0, 22}},
-		9:   {{-1, 19}, {17, 23}},
-		10:  {{-2, 18}, {16, 24}},
+		9:   {{-1, 23}},
+		10:  {{-2, 24}},
 		11:  {{-3, 13}, {15, 25}},
 		12:  {{-2, 26}},
 		13:  {{-1, 27}},
@@ -67,8 +67,8 @@ func TestReadFile(t *testing.T) {
 		18:  {{-5, 24}},
 		19:  {{-4, 23}},
 		20:  {{-3, 23}},
-		21:  {{-2, 22}, {19, 21}},
-		22:  {{-1, 5}, {8, 21}, {14, 14}, {20, 20}},
+		21:  {{-2, 22}},
+		22:  {{-1, 5}, {8, 21}},
 		23:  {{0, 4}, {9, 11}, {14, 20}},
 		24:  {{1, 3}, {10, 10}, {15, 19}},
 		25:  {{2, 2}, {16, 18}},
@@ -134,6 +134,82 @@ func TestFill(t *testing.T) {
 
 }
 
+func TestMergeRanges(t *testing.T) {
+	tests := []struct {
+		in, out []*Range
+	}{
+		{
+			in:  []*Range{{1, 5}, {2, 3}, {7, 8}},
+			out: []*Range{{1, 5}, {7, 8}},
+		},
+		{
+			in: []*Range{
+				{-1, 28}, {0, 5}, {8, 16}, {8, 16}, {12, 16}, {6, 10},
+				{0, 0}, {12, 28}, {12, 28}, {17, 17}},
+			out: []*Range{{-1, 28}},
+		},
+		{
+			in:  []*Range{{13, 13}, {7, 9}, {-7, 11}, {15, 25}},
+			out: []*Range{{-7, 11}, {13, 13}, {15, 25}},
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(fmt.Sprintf("%v", tc.in), func(t *testing.T) {
+			got := MergeRanges(tc.in)
+			if diff := cmp.Diff(tc.out, got); diff != "" {
+				t.Log(tc.in)
+				t.Log(got)
+				t.Errorf(diff)
+			}
+		})
+	}
+}
+
+func TestMerge(t *testing.T) {
+	tests := []struct {
+		a, b, out *Range
+		want      bool
+	}{
+		{
+			a:    NewRange(7, 9),
+			b:    NewRange(-7, 11),
+			out:  NewRange(-7, 11),
+			want: true,
+		},
+		{
+			a:    NewRange(1, 5),
+			b:    NewRange(3, 5),
+			out:  NewRange(1, 5),
+			want: true,
+		},
+		{
+			a:    NewRange(1, 2),
+			b:    NewRange(3, 5),
+			out:  NewRange(1, 5),
+			want: true,
+		},
+		{
+			a:    NewRange(1, 2),
+			b:    NewRange(4, 5),
+			out:  NewRange(1, 2),
+			want: false,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(fmt.Sprintf("%s+%s", tc.a, tc.b), func(t *testing.T) {
+			got := tc.a.Merge(tc.b)
+			if got != tc.want {
+				t.Errorf("bad merge")
+			}
+			if diff := cmp.Diff(tc.out, tc.a); diff != "" {
+				t.Errorf(diff)
+			}
+		})
+	}
+}
+
 func TestOne(t *testing.T) {
 	data := readFile("sample.txt")
 	got := one(data, 10)
@@ -148,8 +224,9 @@ func TestOne(t *testing.T) {
 
 func TestTwo(t *testing.T) {
 	data := readFile("sample.txt")
-	got := two(data)
-	want := 0
+	t.Logf("\n%s", data)
+	got := two(data, 20)
+	want := 56000011
 
 	if diff := cmp.Diff(want, got); diff != "" {
 		t.Errorf(diff)
